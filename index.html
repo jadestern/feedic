@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>모던 RSS 리더</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mozilla/readability@0.5.0/Readability.js"></script>
+  <!-- highlight.js for syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <!-- Shoelace Web Components -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/themes/light.css" />
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/shoelace.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      --sl-font-sans: 'Inter', sans-serif;
+    }
+
+    .feed-item.active {
+      background-color: var(--sl-color-primary-50);
+    }
+
+    .article-item.read {
+      opacity: 0.6;
+    }
+
+    .loader {
+      font-size: 2rem;
+    }
+
+    #detail-content h1,
+    #detail-content h2,
+    #detail-content h3 {
+      font-size: 1.5em;
+      font-weight: bold;
+      margin-top: 1.2em;
+      margin-bottom: 0.6em;
+    }
+
+    #detail-content p {
+      margin-bottom: 1em;
+      line-height: 1.6;
+    }
+
+    #detail-content a {
+      color: var(--sl-color-primary-600);
+      text-decoration: underline;
+    }
+
+    #detail-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 0.5rem;
+      margin: 1em 0;
+    }
+
+    #detail-content ul,
+    #detail-content ol {
+      padding-left: 1.5em;
+      margin-bottom: 1em;
+    }
+
+    #detail-content li {
+      margin-bottom: 0.5em;
+    }
+
+    /* Styling for code blocks */
+    #detail-content pre {
+      background-color: #282c34;
+      color: #abb2bf;
+      padding: 1.25em;
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      font-size: 0.9em;
+    }
+
+    #detail-content pre code.hljs {
+      padding: 0;
+    }
+
+    /* Style for keyboard focus */
+    .article-item:focus-visible {
+      outline: 2px solid var(--sl-color-primary-600);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 4px var(--sl-color-primary-200);
+    }
+
+    /* Resizable layout */
+    .app-container {
+      display: flex;
+      height: 100vh;
+      --sidebar-width: 25%;
+    }
+
+    #sidebar {
+      width: var(--sidebar-width);
+      min-width: 240px;
+      max-width: 50%;
+    }
+
+    #resizer {
+      width: 5px;
+      cursor: col-resize;
+      background-color: #e5e7eb;
+      flex-shrink: 0;
+    }
+
+    #resizer:hover {
+      background-color: var(--sl-color-primary-200);
+    }
+
+    @media (max-width: 768px) {
+      #resizer {
+        display: none;
+      }
+
+      #sidebar {
+        display: none;
+      }
+    }
+
+    /* Toast notification positioning */
+    .sl-toast-stack {
+      left: 50%;
+      transform: translateX(-50%);
+      right: auto;
+      top: var(--sl-spacing-medium);
+    }
+  </style>
+</head>
+
+<body class="bg-gray-100 text-gray-800 antialiased">
+
+  <!-- Main App View -->
+  <div id="main-container" class="relative min-h-screen">
+    <div class="app-container">
+      <!-- Sidebar -->
+      <aside id="sidebar" class="bg-white border-r border-gray-200 flex flex-col">
+        <div class="p-4 border-b">
+          <h1 class="text-xl font-bold text-gray-900">RSS 피드</h1>
+        </div>
+        <div class="p-4 border-b">
+          <form id="add-feed-form" class="flex flex-col space-y-3">
+            <sl-textarea id="feed-urls" placeholder="여러 피드를 추가하려면 한 줄에 하나씩 URL을 입력하세요." resize="auto"></sl-textarea>
+            <sl-button type="submit" variant="primary" class="w-full">피드 추가</sl-button>
+          </form>
+        </div>
+        <nav id="feed-list" class="flex-1 overflow-y-auto p-2"></nav>
+      </aside>
+
+      <!-- Resizer -->
+      <div id="resizer"></div>
+
+      <!-- Main Content -->
+      <main class="flex-1 flex flex-col bg-gray-50 h-screen">
+        <header class="p-4 border-b bg-white">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-3">
+              <sl-icon-button id="menu-btn" name="list" label="Menu" class="md:hidden text-2xl"></sl-icon-button>
+              <h2 id="current-feed-title" class="text-xl font-semibold truncate">모든 기사</h2>
+              <sl-icon-button id="help-btn" name="question-circle" label="Help" class="text-xl"></sl-icon-button>
+            </div>
+            <sl-spinner id="loader" class="loader hidden"></sl-spinner>
+          </div>
+          <div class="flex items-center justify-between">
+            <sl-tab-group id="article-filter-tabs">
+              <sl-tab slot="nav" panel="unread" active>읽지 않음</sl-tab>
+              <sl-tab slot="nav" panel="read">읽음</sl-tab>
+              <sl-tab slot="nav" panel="all">모두</sl-tab>
+            </sl-tab-group>
+            <sl-button id="mark-all-read-btn" variant="text" size="small">현재 목록 모두 읽음으로 표시</sl-button>
+          </div>
+        </header>
+        <div id="article-list" class="flex-1 overflow-y-auto p-4 space-y-3">
+          <div id="empty-state" class="text-center py-10 text-gray-500">
+            <p>표시할 기사가 없습니다.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Mobile Sidebar Drawer -->
+  <sl-drawer id="mobile-sidebar-drawer" label="RSS 피드" class="md:hidden">
+    <div id="mobile-sidebar-content" class="h-full flex flex-col"></div>
+  </sl-drawer>
+
+  <!-- Article Detail View -->
+  <div id="article-detail-container" class="hidden fixed inset-0 bg-white z-50 flex flex-col">
+    <header class="flex items-center justify-between p-4 border-b sticky top-0 bg-white/80 backdrop-blur-sm">
+      <sl-icon-button id="detail-back-btn" name="arrow-left" label="Back" class="text-2xl"></sl-icon-button>
+      <div class="flex items-center space-x-2">
+        <sl-button id="detail-prev-btn" size="small"><sl-icon slot="prefix" name="arrow-left-short"></sl-icon>이전
+          (←)</sl-button>
+        <sl-button id="detail-next-btn" size="small"><sl-icon slot="suffix" name="arrow-right-short"></sl-icon>다음
+          (→)</sl-button>
+      </div>
+      <sl-button id="detail-link-btn" href="#" target="_blank" variant="primary" size="small">원문 보기</sl-button>
+    </header>
+    <div id="detail-scroll-container" class="flex-1 overflow-y-auto p-6 md:p-8 lg:p-12">
+      <div class="max-w-3xl mx-auto">
+        <h1 id="detail-title" class="text-3xl md:text-4xl font-bold mb-2 text-gray-900"></h1>
+        <p id="detail-author" class="text-gray-500 mb-8"></p>
+        <div id="detail-content" class="prose lg:prose-xl max-w-none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <sl-dialog id="help-modal" label="키보드 단축키">
+    <ul class="space-y-4 text-gray-700">
+      <li class="flex items-center"><kbd
+          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mr-4">↑</kbd> / <kbd
+          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mx-2">↓</kbd><span>기사
+          목록에서 이동 / 상세 보기에서 스크롤</span></li>
+      <li class="flex items-center"><kbd
+          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mr-4">←</kbd> / <kbd
+          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mx-2">→</kbd><span>상세
+          보기에서 이전/다음 기사로 이동</span></li>
+      <li class="flex items-center"><kbd
+          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-3 py-1 mr-4">Space</kbd><span>선택한
+          기사 상세 보기</span></li>
+      <li class="flex items-center"><kbd
+          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mr-4">l</kbd><span>상세
+          보기에서 목록으로 돌아가기</span></li>
+      <li class="flex items-center"><kbd
+          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mr-4">Esc</kbd><span>도움말
+          닫기</span></li>
+    </ul>
+    <sl-button slot="footer" variant="primary" onclick="document.getElementById('help-modal').hide()">닫기</sl-button>
+  </sl-dialog>
+
+  <script>
+    const DB_NAME = 'RSSReaderDB', DB_VERSION = 1, FEED_STORE = 'feeds', ARTICLE_STORE = 'articles';
+    let db;
+
+    // DB, Feed, Article management functions (unchanged)
+    function initDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onerror = (e) => reject("Database error: " + e.target.errorCode);
+        request.onsuccess = (e) => { db = e.target.result; resolve(db); };
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(FEED_STORE)) db.createObjectStore(FEED_STORE, { keyPath: 'url' });
+          if (!db.objectStoreNames.contains(ARTICLE_STORE)) {
+            const store = db.createObjectStore(ARTICLE_STORE, { keyPath: 'guid' });
+            store.createIndex('feedUrl', 'feedUrl', { unique: false });
+            store.createIndex('pubDate', 'pubDate', { unique: false });
+          }
+        };
+      });
+    }
+    const getAllFeeds = () => new Promise((resolve) => db.transaction([FEED_STORE]).objectStore(FEED_STORE).getAll().onsuccess = (e) => resolve(e.target.result));
+    const deleteFeed = (url) => new Promise((resolve) => {
+      const tx = db.transaction([FEED_STORE, ARTICLE_STORE], 'readwrite');
+      tx.objectStore(FEED_STORE).delete(url);
+      tx.objectStore(ARTICLE_STORE).index('feedUrl').openCursor(IDBKeyRange.only(url)).onsuccess = (e) => {
+        const cursor = e.target.result; if (cursor) { cursor.delete(); cursor.continue(); }
+      };
+      tx.oncomplete = () => resolve();
+    });
+    async function saveArticles(articles) {
+      if (!articles || articles.length === 0) return;
+      return new Promise((resolve) => {
+        const tx = db.transaction([ARTICLE_STORE], 'readwrite');
+        const store = tx.objectStore(ARTICLE_STORE);
+        const guids = articles.map(a => a.guid);
+        const existingArticles = new Map();
+        store.openCursor().onsuccess = e => {
+          const cursor = e.target.result;
+          if (cursor) {
+            if (guids.includes(cursor.key)) existingArticles.set(cursor.key, cursor.value);
+            cursor.continue();
+          } else {
+            articles.forEach(newArticle => {
+              const existing = existingArticles.get(newArticle.guid);
+              store.put({ ...newArticle, read: existing ? existing.read : false });
+            });
+          }
+        };
+        tx.oncomplete = () => resolve();
+      });
+    }
+    const getArticles = (feedUrl = null) => new Promise((resolve) => {
+      const store = db.transaction([ARTICLE_STORE]).objectStore(ARTICLE_STORE);
+      const req = feedUrl ? store.index('feedUrl').getAll(feedUrl) : store.getAll();
+      req.onsuccess = () => resolve(req.result.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate)));
+    });
+    const getArticleByGuid = (guid) => new Promise((resolve) => db.transaction([ARTICLE_STORE]).objectStore(ARTICLE_STORE).get(guid).onsuccess = (e) => resolve(e.target.result));
+    const setArticleReadStatus = (guid, read) => new Promise((resolve) => {
+      const store = db.transaction([ARTICLE_STORE], 'readwrite').objectStore(ARTICLE_STORE);
+      store.get(guid).onsuccess = e => {
+        const article = e.target.result;
+        if (article) { article.read = read; store.put(article).onsuccess = () => resolve(article.read); }
+      };
+    });
+
+    // UI elements
+    const feedListEl = document.getElementById('feed-list'), articleListEl = document.getElementById('article-list');
+    const currentFeedTitleEl = document.getElementById('current-feed-title'), emptyStateEl = document.getElementById('empty-state');
+    let currentFilter = null, articleFilter = 'unread', currentVisibleArticles = [], lastFocusedArticleGuid = null;
+
+    async function renderFeeds() {
+      const feeds = await getAllFeeds();
+      const feedListHTML = `
+                <sl-menu>
+                    <sl-menu-item data-url="all" class="${!currentFilter ? 'active' : ''}">모든 기사</sl-menu-item>
+                    <sl-divider></sl-divider>
+                    ${feeds.map(feed => `
+                        <sl-menu-item data-url="${feed.url}" class="${currentFilter === feed.url ? 'active' : ''}">
+                            <div class="w-full flex justify-between items-center">
+                                <span class="truncate pr-2">${feed.title || feed.url}</span>
+                                <sl-icon-button name="x-lg" label="Delete" class="delete-feed-btn text-lg" data-url="${feed.url}"></sl-icon-button>
+                            </div>
+                        </sl-menu-item>
+                    `).join('')}
+                </sl-menu>
+            `;
+      feedListEl.innerHTML = feedListHTML;
+      document.getElementById('mobile-sidebar-content').innerHTML = document.querySelector('#sidebar').innerHTML;
+    }
+
+    async function renderArticles(feedUrl = null) {
+      const allArticles = await getArticles(feedUrl);
+      const feeds = await getAllFeeds();
+      const feedsMap = new Map(feeds.map(f => [f.url, f]));
+
+      if (articleFilter === 'unread') currentVisibleArticles = allArticles.filter(a => !a.read);
+      else if (articleFilter === 'read') currentVisibleArticles = allArticles.filter(a => a.read);
+      else currentVisibleArticles = allArticles;
+
+      articleListEl.innerHTML = '';
+      emptyStateEl.classList.toggle('hidden', currentVisibleArticles.length > 0);
+      document.getElementById('mark-all-read-btn').style.display = (articleFilter !== 'read' && currentVisibleArticles.length > 0) ? 'block' : 'none';
+
+      currentVisibleArticles.forEach(article => {
+        const feed = feedsMap.get(article.feedUrl);
+        const faviconUrl = feed ? feed.faviconUrl : '';
+        const articleEl = document.createElement('div');
+        articleEl.className = `article-item group bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer ${article.read ? 'read' : ''}`;
+        articleEl.dataset.guid = article.guid;
+        articleEl.setAttribute('tabindex', '0'); // Make focusable
+        const pubDate = new Date(article.pubDate).toLocaleString('ko-KR');
+        articleEl.innerHTML = `
+                    <div class="flex items-start space-x-4">
+                        <img src="${faviconUrl}" onerror="this.src='https://placehold.co/32x32/e2e8f0/64748b?text=RSS'; this.onerror=null;" class="w-8 h-8 rounded-full bg-gray-200" alt="피드 아이콘">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-bold text-blue-800 group-hover:underline">${article.title}</h3>
+                            <p class="text-sm text-gray-500 mt-1">${article.author || '저자 없음'} &middot; ${pubDate}</p>
+                        </div>
+                        <sl-button variant="${article.read ? 'default' : 'primary'}" size="small" pill class="toggle-read-btn">${article.read ? '안 읽음' : '읽음'}</sl-button>
+                    </div>`;
+        articleListEl.appendChild(articleEl);
+      });
+    }
+
+    // Feed parsing and syncing functions
+    const loaderEl = document.getElementById('loader');
+    async function fetchAndSaveFeed(feedUrl) {
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(feedUrl)}`;
+      try {
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const xmlText = await response.text();
+
+        const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+        const parseError = doc.querySelector('parsererror');
+        if (parseError) {
+          console.error('XML Parsing Error:', parseError.textContent);
+          throw new Error('유효하지 않은 RSS 피드 형식입니다.');
+        }
+
+        const feedTitle = doc.querySelector('channel > title')?.textContent || doc.querySelector('feed > title')?.textContent || 'Untitled Feed';
+        const originalSiteLink = doc.querySelector('channel > link:not([rel])')?.textContent.trim() || doc.querySelector('feed > link[rel="alternate"]')?.getAttribute('href') || feedUrl;
+
+        const items = Array.from(doc.querySelectorAll('item, entry'));
+        const articles = items.map(item => {
+          const title = item.querySelector('title')?.textContent || '[No Title]';
+          const linkElement = item.querySelector('link');
+          const link = linkElement?.getAttribute('href') || linkElement?.textContent.trim() || '';
+          const guid = item.querySelector('guid')?.textContent || item.querySelector('id')?.textContent || link;
+          const pubDate = item.querySelector('pubDate, published, updated')?.textContent || new Date().toISOString();
+          const author = item.querySelector('author > name, creator')?.textContent || '';
+          const content = item.querySelector('*|content, content')?.textContent || item.querySelector('description, summary')?.textContent || '';
+
+          return { guid, title, link, author, pubDate: new Date(pubDate).toISOString(), content, feedUrl };
+        });
+
+        let faviconUrl = '';
+        try {
+          const domain = new URL(originalSiteLink).origin;
+          faviconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${domain}`;
+        } catch (e) { console.warn("Could not determine domain for favicon for feed:", feedUrl); }
+
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction([FEED_STORE], 'readwrite');
+          const store = tx.objectStore(FEED_STORE);
+          const feedData = { url: feedUrl, faviconUrl: faviconUrl, title: feedTitle };
+          store.put(feedData);
+          tx.oncomplete = () => resolve();
+          tx.onerror = (e) => reject(e.target.error);
+        });
+
+        await saveArticles(articles);
+        return feedTitle;
+      } catch (error) {
+        console.error(`'${feedUrl}' 피드 가져오기 오류:`, error);
+        throw error;
+      }
+    }
+    async function refreshAllFeeds() {
+      loaderEl.classList.remove('hidden');
+      const feeds = await getAllFeeds();
+      await Promise.all(feeds.map(feed => fetchAndSaveFeed(feed.url).catch(e => e)));
+      loaderEl.classList.add('hidden');
+      await renderFeeds();
+      await renderArticles(currentFilter);
+      showMessage('모든 피드를 새로고침했습니다.', 'success');
+    }
+
+    // Event handlers and detail view logic
+    const mainContainer = document.getElementById('main-container'), detailContainer = document.getElementById('article-detail-container');
+    const showMessage = (message, type = 'error', duration = 3000) => {
+      const alert = document.createElement('sl-alert');
+      let variant = 'danger';
+      let icon = 'exclamation-octagon';
+      if (type === 'success') {
+        variant = 'success';
+        icon = 'check2-circle';
+      } else if (type === 'info') {
+        variant = 'primary';
+        icon = 'info-circle';
+      }
+      alert.variant = variant;
+      alert.duration = duration;
+      alert.innerHTML = `<sl-icon name="${icon}" slot="icon"></sl-icon>${message}`;
+
+      // Add click event listener to hide the toast
+      alert.addEventListener('click', () => alert.hide());
+
+      document.body.appendChild(alert);
+      alert.toast();
+    };
+
+    async function fetchAndDisplayFullContent(url, fallbackContent) {
+      const detailContentEl = document.getElementById('detail-content');
+      detailContentEl.innerHTML = '<div class="flex justify-center items-center p-8"><sl-spinner class="text-4xl"></sl-spinner></div>';
+      try {
+        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error('Network response was not ok.');
+        const html = await response.text();
+
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        doc.baseURI = url;
+        const reader = new Readability(doc);
+        const article = reader.parse();
+
+        if (article && article.content) {
+          detailContentEl.innerHTML = article.content;
+        } else {
+          throw new Error('Readability could not parse the article.');
+        }
+      } catch (error) {
+        console.error('Error fetching full content:', error);
+        detailContentEl.innerHTML = fallbackContent + '<p class="text-red-500 mt-4">전체 기사를 불러오는데 실패했습니다. 요약본을 표시합니다.</p>';
+      } finally {
+        detailContentEl.querySelectorAll('pre code').forEach((block) => {
+          hljs.highlightElement(block);
+        });
+      }
+    }
+
+    async function updateDetailView(guid) {
+      await setArticleReadStatus(guid, true);
+      const article = await getArticleByGuid(guid);
+      if (!article) return;
+      document.getElementById('detail-title').textContent = article.title;
+      document.getElementById('detail-author').textContent = `${article.author || '저자 없음'} · ${new Date(article.pubDate).toLocaleString('ko-KR')}`;
+      document.getElementById('detail-link-btn').href = article.link;
+      document.getElementById('detail-scroll-container').scrollTop = 0;
+
+      const detailContentEl = document.getElementById('detail-content');
+      const MIN_LENGTH_FOR_FULL_CONTENT = 1500;
+      if (article.content && article.content.length > MIN_LENGTH_FOR_FULL_CONTENT) {
+        detailContentEl.innerHTML = article.content;
+        detailContentEl.querySelectorAll('pre code').forEach((block) => {
+          hljs.highlightElement(block);
+        });
+      } else {
+        fetchAndDisplayFullContent(article.link, article.content);
+      }
+
+      const currentIndex = currentVisibleArticles.findIndex(a => a.guid === guid);
+      const prevBtn = document.getElementById('detail-prev-btn'), nextBtn = document.getElementById('detail-next-btn');
+      prevBtn.disabled = currentIndex <= 0;
+      nextBtn.disabled = currentIndex >= currentVisibleArticles.length - 1;
+      prevBtn.dataset.guid = currentIndex > 0 ? currentVisibleArticles[currentIndex - 1].guid : '';
+      nextBtn.dataset.guid = currentIndex < currentVisibleArticles.length - 1 ? currentVisibleArticles[currentIndex + 1].guid : '';
+    }
+
+    function showDetailView(guid) {
+      lastFocusedArticleGuid = guid;
+      mainContainer.classList.add('hidden');
+      detailContainer.classList.remove('hidden');
+      updateDetailView(guid);
+    }
+
+    function hideDetailView() {
+      mainContainer.classList.remove('hidden');
+      detailContainer.classList.add('hidden');
+      renderArticles(currentFilter).then(() => {
+        if (lastFocusedArticleGuid) {
+          const lastFocusedEl = articleListEl.querySelector(`[data-guid="${lastFocusedArticleGuid}"]`);
+          if (lastFocusedEl) {
+            lastFocusedEl.focus();
+          }
+        }
+      });
+    }
+
+    document.getElementById('add-feed-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const urlsTextarea = document.getElementById('feed-urls');
+      const urls = urlsTextarea.value.split('\n').map(url => url.trim()).filter(url => url && url.startsWith('http'));
+
+      if (urls.length === 0) {
+        showMessage('유효한 URL을 입력해주세요.', 'error');
+        return;
+      }
+
+      loaderEl.classList.remove('hidden');
+      const existingFeeds = await getAllFeeds();
+      const existingUrls = new Set(existingFeeds.map(f => f.url));
+      const newUrls = urls.filter(url => !existingUrls.has(url));
+
+      if (newUrls.length === 0) {
+        showMessage('입력된 모든 피드가 이미 추가되어 있습니다.', 'info');
+        loaderEl.classList.add('hidden');
+        urlsTextarea.value = '';
+        return;
+      }
+
+      const results = await Promise.allSettled(newUrls.map(url => fetchAndSaveFeed(url)));
+
+      let successfulCount = 0;
+      let failedCount = 0;
+      results.forEach(result => {
+        if (result.status === 'fulfilled') successfulCount++;
+        else {
+          failedCount++;
+          console.error('피드 추가 실패:', result.reason);
+        }
+      });
+
+      urlsTextarea.value = '';
+      await renderFeeds();
+      await renderArticles(currentFilter);
+      loaderEl.classList.add('hidden');
+
+      let message = '';
+      if (successfulCount > 0) message += `${successfulCount}개의 피드를 추가했습니다. `;
+      if (failedCount > 0) message += `${failedCount}개 추가에 실패했습니다.`;
+      const messageType = successfulCount > 0 ? 'success' : 'error';
+      showMessage(message.trim(), messageType);
+    });
+
+    document.body.addEventListener('sl-select', async (e) => {
+      const selectedItem = e.detail.item;
+      if (selectedItem.closest('#feed-list') || selectedItem.closest('#mobile-sidebar-content')) {
+        const url = selectedItem.dataset.url;
+        currentFilter = (url === 'all') ? null : url;
+
+        const feed = (await getAllFeeds()).find(f => f.url === url);
+        currentFeedTitleEl.textContent = feed ? (feed.title || url) : '모든 기사';
+        await renderFeeds();
+        await renderArticles(currentFilter);
+
+        const drawer = document.getElementById('mobile-sidebar-drawer');
+        if (drawer.open) drawer.hide();
+      }
+    });
+
+    document.body.addEventListener('click', async (e) => {
+      const deleteBtn = e.target.closest('.delete-feed-btn');
+      if (deleteBtn) {
+        e.stopPropagation();
+        const url = deleteBtn.dataset.url;
+        if (confirm(`'${url}' 피드를 삭제하시겠습니까?`)) {
+          await deleteFeed(url);
+          if (currentFilter === url) { currentFilter = null; currentFeedTitleEl.textContent = '모든 기사'; }
+          await renderFeeds(); await renderArticles(currentFilter);
+        }
+      }
+    });
+
+    articleListEl.addEventListener('click', async (e) => {
+      const articleItem = e.target.closest('.article-item');
+      if (!articleItem) return;
+      const guid = articleItem.dataset.guid;
+      if (e.target.closest('.toggle-read-btn')) {
+        e.stopPropagation();
+        const article = await getArticleByGuid(guid);
+        await setArticleReadStatus(guid, !article.read);
+        await renderArticles(currentFilter);
+      } else {
+        showDetailView(guid);
+      }
+    });
+    articleListEl.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const items = Array.from(articleListEl.querySelectorAll('.article-item'));
+        const currentItem = document.activeElement;
+        const currentIndex = items.indexOf(currentItem);
+
+        if (e.key === 'ArrowDown' && currentIndex < items.length - 1) {
+          items[currentIndex + 1].focus();
+        } else if (e.key === 'ArrowUp' && currentIndex > 0) {
+          items[currentIndex - 1].focus();
+        }
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        if (document.activeElement.classList.contains('article-item')) {
+          document.activeElement.click();
+        }
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const helpModal = document.getElementById('help-modal');
+      if (e.key === 'Escape' && helpModal.open) {
+        helpModal.hide();
+        return;
+      }
+
+      if (!detailContainer.classList.contains('hidden')) {
+        if (e.key === 'l') {
+          hideDetailView();
+        } else if (e.key === 'ArrowRight') {
+          document.getElementById('detail-next-btn').click();
+        } else if (e.key === 'ArrowLeft') {
+          document.getElementById('detail-prev-btn').click();
+        } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          const container = document.getElementById('detail-scroll-container');
+          const scrollAmount = 120;
+          if (e.key === 'ArrowDown') {
+            container.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+          } else {
+            container.scrollBy({ top: -scrollAmount, behavior: 'smooth' });
+          }
+        }
+      }
+    });
+
+    document.getElementById('article-filter-tabs').addEventListener('sl-tab-show', (e) => {
+      articleFilter = e.detail.name;
+      renderArticles(currentFilter);
+    });
+    document.getElementById('detail-prev-btn').addEventListener('click', (e) => {
+      if (!e.currentTarget.disabled) updateDetailView(e.currentTarget.dataset.guid);
+    });
+    document.getElementById('detail-next-btn').addEventListener('click', (e) => {
+      if (!e.currentTarget.disabled) updateDetailView(e.currentTarget.dataset.guid);
+    });
+    document.getElementById('mark-all-read-btn').addEventListener('click', async () => {
+      const articlesToUpdate = currentVisibleArticles.filter(a => !a.read);
+      if (articlesToUpdate.length === 0) return;
+      const tx = db.transaction([ARTICLE_STORE], 'readwrite');
+      articlesToUpdate.forEach(article => { article.read = true; tx.objectStore(ARTICLE_STORE).put(article); });
+      tx.oncomplete = async () => renderArticles(currentFilter);
+    });
+
+    // Help Modal Logic
+    document.getElementById('help-btn').addEventListener('click', () => document.getElementById('help-modal').show());
+
+    // Mobile Menu Logic
+    document.getElementById('menu-btn').addEventListener('click', () => document.getElementById('mobile-sidebar-drawer').show());
+
+    // Resizer Logic
+    const resizer = document.getElementById('resizer');
+    const sidebar = document.getElementById('sidebar');
+    resizer.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+
+      function onMouseMove(e) {
+        const newWidth = e.clientX;
+        const containerRect = sidebar.parentElement.getBoundingClientRect();
+        const newRelativeWidth = (newWidth - containerRect.left) / containerRect.width * 100;
+        document.documentElement.style.setProperty('--sidebar-width', `${newRelativeWidth}%`);
+      }
+
+      function onMouseUp() {
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        localStorage.setItem('sidebarWidth', document.documentElement.style.getPropertyValue('--sidebar-width'));
+      }
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+
+    // 7. 앱 시작
+    window.addEventListener('load', async () => {
+      try {
+        const savedWidth = localStorage.getItem('sidebarWidth');
+        if (savedWidth) {
+          document.documentElement.style.setProperty('--sidebar-width', savedWidth);
+        }
+        await initDB();
+        await renderFeeds();
+        document.querySelector(`sl-tab[panel="${articleFilter}"]`).active = true;
+        await renderArticles();
+        await refreshAllFeeds();
+      } catch (error) {
+        console.error("앱 초기화 실패:", error);
+        document.body.innerHTML = '<div class="p-4 text-red-600">앱 초기화 실패. IndexedDB를 지원하는지 확인해주세요.</div>';
+      }
+    });
+  </script>
+</body>
+
+</html>
