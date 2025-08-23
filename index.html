@@ -6,6 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>모던 RSS 리더</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Configure Tailwind CSS for dark mode
+    tailwind.config = {
+      darkMode: 'class',
+    }
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@mozilla/readability@0.5.0/Readability.js"></script>
   <!-- highlight.js for syntax highlighting -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
@@ -13,6 +19,7 @@
 
   <!-- Shoelace Web Components -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/themes/light.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/themes/dark.css" />
   <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/shoelace.js"></script>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -111,6 +118,10 @@
       flex-shrink: 0;
     }
 
+    .dark #resizer {
+      background-color: #374151;
+    }
+
     #resizer:hover {
       background-color: var(--sl-color-primary-200);
     }
@@ -135,17 +146,17 @@
   </style>
 </head>
 
-<body class="bg-gray-100 text-gray-800 antialiased">
+<body class="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 antialiased">
 
   <!-- Main App View -->
   <div id="main-container" class="relative min-h-screen">
     <div class="app-container">
       <!-- Sidebar -->
-      <aside id="sidebar" class="bg-white border-r border-gray-200 flex flex-col">
-        <div class="p-4 border-b">
-          <h1 class="text-xl font-bold text-gray-900">RSS 피드</h1>
+      <aside id="sidebar" class="bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+        <div class="p-4 border-b dark:border-gray-700">
+          <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">RSS 피드</h1>
         </div>
-        <div class="p-4 border-b">
+        <div class="p-4 border-b dark:border-gray-700">
           <form id="add-feed-form" class="flex flex-col space-y-3">
             <sl-textarea id="feed-urls" placeholder="여러 피드를 추가하려면 한 줄에 하나씩 URL을 입력하세요." resize="auto"></sl-textarea>
             <sl-button type="submit" variant="primary" class="w-full">피드 추가</sl-button>
@@ -158,15 +169,26 @@
       <div id="resizer"></div>
 
       <!-- Main Content -->
-      <main class="flex-1 flex flex-col bg-gray-50 h-screen">
-        <header class="p-4 border-b bg-white">
+      <main class="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900 h-screen">
+        <header class="p-4 border-b bg-white dark:bg-gray-800 dark:border-gray-700">
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center space-x-3">
               <sl-icon-button id="menu-btn" name="list" label="Menu" class="md:hidden text-2xl"></sl-icon-button>
-              <h2 id="current-feed-title" class="text-xl font-semibold truncate">모든 기사</h2>
+              <h2 id="current-feed-title" class="text-xl font-semibold truncate text-gray-900 dark:text-gray-100">모든 기사
+              </h2>
               <sl-icon-button id="help-btn" name="question-circle" label="Help" class="text-xl"></sl-icon-button>
             </div>
-            <sl-spinner id="loader" class="loader hidden"></sl-spinner>
+            <div class="flex items-center space-x-2">
+              <sl-dropdown>
+                <sl-icon-button name="sun" label="Theme" class="text-xl" slot="trigger"></sl-icon-button>
+                <sl-menu id="theme-menu">
+                  <sl-menu-item value="light">Light <sl-icon name="check" slot="suffix"></sl-icon></sl-menu-item>
+                  <sl-menu-item value="dark">Dark <sl-icon name="check" slot="suffix"></sl-icon></sl-menu-item>
+                  <sl-menu-item value="system">System <sl-icon name="check" slot="suffix"></sl-icon></sl-menu-item>
+                </sl-menu>
+              </sl-dropdown>
+              <sl-spinner id="loader" class="loader hidden"></sl-spinner>
+            </div>
           </div>
           <div class="flex items-center justify-between">
             <sl-tab-group id="article-filter-tabs">
@@ -174,7 +196,8 @@
               <sl-tab slot="nav" panel="read">읽음</sl-tab>
               <sl-tab slot="nav" panel="all">모두</sl-tab>
             </sl-tab-group>
-            <sl-button id="mark-all-read-btn" variant="text" size="small">현재 목록 모두 읽음으로 표시</sl-button>
+            <sl-icon-button id="mark-all-read-btn" name="check2-all" label="현재 목록 모두 읽음으로 표시"
+              class="text-2xl"></sl-icon-button>
           </div>
         </header>
         <div id="article-list" class="flex-1 overflow-y-auto p-4 space-y-3">
@@ -192,8 +215,9 @@
   </sl-drawer>
 
   <!-- Article Detail View -->
-  <div id="article-detail-container" class="hidden fixed inset-0 bg-white z-50 flex flex-col">
-    <header class="flex items-center justify-between p-4 border-b sticky top-0 bg-white/80 backdrop-blur-sm">
+  <div id="article-detail-container" class="hidden fixed inset-0 bg-white dark:bg-gray-900 z-50 flex flex-col">
+    <header
+      class="flex items-center justify-between p-4 border-b dark:border-gray-700 sticky top-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
       <sl-icon-button id="detail-back-btn" name="arrow-left" label="Back" class="text-2xl"></sl-icon-button>
       <div class="flex items-center space-x-2">
         <sl-button id="detail-prev-btn" size="small"><sl-icon slot="prefix" name="arrow-left-short"></sl-icon>이전
@@ -205,16 +229,16 @@
     </header>
     <div id="detail-scroll-container" class="flex-1 overflow-y-auto p-6 md:p-8 lg:p-12">
       <div class="max-w-3xl mx-auto">
-        <h1 id="detail-title" class="text-3xl md:text-4xl font-bold mb-2 text-gray-900"></h1>
-        <p id="detail-author" class="text-gray-500 mb-8"></p>
-        <div id="detail-content" class="prose lg:prose-xl max-w-none"></div>
+        <h1 id="detail-title" class="text-3xl md:text-4xl font-bold mb-2 text-gray-900 dark:text-gray-100"></h1>
+        <p id="detail-author" class="text-gray-500 dark:text-gray-400 mb-8"></p>
+        <div id="detail-content" class="prose dark:prose-invert lg:prose-xl max-w-none"></div>
       </div>
     </div>
   </div>
 
   <!-- Help Modal -->
   <sl-dialog id="help-modal" label="키보드 단축키">
-    <ul class="space-y-4 text-gray-700">
+    <ul class="space-y-4 text-gray-700 dark:text-gray-300">
       <li class="flex items-center"><kbd
           class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mr-4">↑</kbd> / <kbd
           class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mx-2">↓</kbd><span>기사
@@ -267,7 +291,8 @@
       tx.oncomplete = () => resolve();
     });
     async function saveArticles(articles) {
-      if (!articles || articles.length === 0) return;
+      if (!articles || articles.length === 0) return false;
+      let newArticlesAdded = false;
       return new Promise((resolve) => {
         const tx = db.transaction([ARTICLE_STORE], 'readwrite');
         const store = tx.objectStore(ARTICLE_STORE);
@@ -281,11 +306,14 @@
           } else {
             articles.forEach(newArticle => {
               const existing = existingArticles.get(newArticle.guid);
+              if (!existing) {
+                newArticlesAdded = true;
+              }
               store.put({ ...newArticle, read: existing ? existing.read : false });
             });
           }
         };
-        tx.oncomplete = () => resolve();
+        tx.oncomplete = () => resolve(newArticlesAdded);
       });
     }
     const getArticles = (feedUrl = null) => new Promise((resolve) => {
@@ -344,7 +372,7 @@
         const feed = feedsMap.get(article.feedUrl);
         const faviconUrl = feed ? feed.faviconUrl : '';
         const articleEl = document.createElement('div');
-        articleEl.className = `article-item group bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer ${article.read ? 'read' : ''}`;
+        articleEl.className = `article-item group bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 cursor-pointer ${article.read ? 'read' : ''}`;
         articleEl.dataset.guid = article.guid;
         articleEl.setAttribute('tabindex', '0'); // Make focusable
         const pubDate = new Date(article.pubDate).toLocaleString('ko-KR');
@@ -352,8 +380,8 @@
                     <div class="flex items-start space-x-4">
                         <img src="${faviconUrl}" onerror="this.src='https://placehold.co/32x32/e2e8f0/64748b?text=RSS'; this.onerror=null;" class="w-8 h-8 rounded-full bg-gray-200" alt="피드 아이콘">
                         <div class="flex-1">
-                            <h3 class="text-lg font-bold text-blue-800 group-hover:underline">${article.title}</h3>
-                            <p class="text-sm text-gray-500 mt-1">${article.author || '저자 없음'} &middot; ${pubDate}</p>
+                            <h3 class="text-lg font-bold text-blue-800 dark:text-blue-400 group-hover:underline">${article.title}</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">${article.author || '저자 없음'} &middot; ${pubDate}</p>
                         </div>
                         <sl-button variant="${article.read ? 'default' : 'primary'}" size="small" pill class="toggle-read-btn">${article.read ? '안 읽음' : '읽음'}</sl-button>
                     </div>`;
@@ -408,8 +436,8 @@
           tx.onerror = (e) => reject(e.target.error);
         });
 
-        await saveArticles(articles);
-        return feedTitle;
+        const newArticlesAdded = await saveArticles(articles);
+        return { feedTitle, newArticlesAdded };
       } catch (error) {
         console.error(`'${feedUrl}' 피드 가져오기 오류:`, error);
         throw error;
@@ -418,11 +446,22 @@
     async function refreshAllFeeds() {
       loaderEl.classList.remove('hidden');
       const feeds = await getAllFeeds();
-      await Promise.all(feeds.map(feed => fetchAndSaveFeed(feed.url).catch(e => e)));
+      const results = await Promise.allSettled(feeds.map(feed => fetchAndSaveFeed(feed.url)));
+
+      let anyNewArticles = false;
+      results.forEach(result => {
+        if (result.status === 'fulfilled' && result.value.newArticlesAdded) {
+          anyNewArticles = true;
+        }
+      });
+
       loaderEl.classList.add('hidden');
       await renderFeeds();
       await renderArticles(currentFilter);
-      showMessage('모든 피드를 새로고침했습니다.', 'success');
+
+      if (anyNewArticles) {
+        showMessage('새로운 기사를 가져왔습니다.', 'success');
+      }
     }
 
     // Event handlers and detail view logic
@@ -442,7 +481,6 @@
       alert.duration = duration;
       alert.innerHTML = `<sl-icon name="${icon}" slot="icon"></sl-icon>${message}`;
 
-      // Add click event listener to hide the toast
       alert.addEventListener('click', () => alert.hide());
 
       document.body.appendChild(alert);
@@ -506,14 +544,17 @@
       nextBtn.dataset.guid = currentIndex < currentVisibleArticles.length - 1 ? currentVisibleArticles[currentIndex + 1].guid : '';
     }
 
-    function showDetailView(guid) {
+    function showDetailView(guid, fromPopState = false) {
       lastFocusedArticleGuid = guid;
       mainContainer.classList.add('hidden');
       detailContainer.classList.remove('hidden');
       updateDetailView(guid);
+      if (!fromPopState) {
+        history.pushState({ guid: guid }, '', `#detail/${encodeURIComponent(guid)}`);
+      }
     }
 
-    function hideDetailView() {
+    function hideDetailView(fromPopState = false) {
       mainContainer.classList.remove('hidden');
       detailContainer.classList.add('hidden');
       renderArticles(currentFilter).then(() => {
@@ -524,6 +565,9 @@
           }
         }
       });
+      if (!fromPopState) {
+        history.pushState({}, '', window.location.pathname + window.location.search);
+      }
     }
 
     document.getElementById('add-feed-form').addEventListener('submit', async (e) => {
@@ -643,7 +687,7 @@
 
       if (!detailContainer.classList.contains('hidden')) {
         if (e.key === 'l') {
-          hideDetailView();
+          history.back();
         } else if (e.key === 'ArrowRight') {
           document.getElementById('detail-next-btn').click();
         } else if (e.key === 'ArrowLeft') {
@@ -679,6 +723,8 @@
       tx.oncomplete = async () => renderArticles(currentFilter);
     });
 
+    document.getElementById('detail-back-btn').addEventListener('click', () => history.back());
+
     // Help Modal Logic
     document.getElementById('help-btn').addEventListener('click', () => document.getElementById('help-modal').show());
 
@@ -712,6 +758,47 @@
       document.addEventListener('mouseup', onMouseUp);
     });
 
+    // Router Logic
+    window.addEventListener('popstate', (event) => {
+      const guid = event.state?.guid;
+      if (guid) {
+        showDetailView(guid, true);
+      } else {
+        hideDetailView(true);
+      }
+    });
+
+    // Theme Logic
+    const themeMenu = document.getElementById('theme-menu');
+    const themeToggleButton = document.querySelector('sl-dropdown sl-icon-button');
+    const html = document.documentElement;
+
+    function applyTheme(theme) {
+      const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+      html.classList.toggle('dark', isDark);
+      html.classList.toggle('sl-theme-dark', isDark);
+      themeToggleButton.name = isDark ? 'moon-stars' : 'sun';
+
+      themeMenu.querySelectorAll('sl-menu-item').forEach(item => {
+        const checkIcon = item.querySelector('sl-icon[slot="suffix"]');
+        checkIcon.style.visibility = item.value === theme ? 'visible' : 'hidden';
+      });
+    }
+
+    themeMenu.addEventListener('sl-select', event => {
+      const theme = event.detail.item.value;
+      localStorage.setItem('rss-theme', theme);
+      applyTheme(theme);
+    });
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      const currentTheme = localStorage.getItem('rss-theme') || 'system';
+      if (currentTheme === 'system') {
+        applyTheme('system');
+      }
+    });
+
     // 7. 앱 시작
     window.addEventListener('load', async () => {
       try {
@@ -719,11 +806,23 @@
         if (savedWidth) {
           document.documentElement.style.setProperty('--sidebar-width', savedWidth);
         }
+
+        const savedTheme = localStorage.getItem('rss-theme') || 'system';
+        applyTheme(savedTheme);
+
         await initDB();
         await renderFeeds();
         document.querySelector(`sl-tab[panel="${articleFilter}"]`).active = true;
-        await renderArticles();
-        await refreshAllFeeds();
+
+        const initialHash = window.location.hash;
+        if (initialHash.startsWith('#detail/')) {
+          const guid = decodeURIComponent(initialHash.substring(8));
+          await refreshAllFeeds();
+          showDetailView(guid, true);
+        } else {
+          await renderArticles();
+          await refreshAllFeeds();
+        }
       } catch (error) {
         console.error("앱 초기화 실패:", error);
         document.body.innerHTML = '<div class="p-4 text-red-600">앱 초기화 실패. IndexedDB를 지원하는지 확인해주세요.</div>';
