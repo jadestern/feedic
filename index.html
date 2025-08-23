@@ -596,9 +596,11 @@
       }
     }
 
-    document.getElementById('add-feed-form').addEventListener('submit', async (e) => {
+    // Use event delegation to handle form submission for both desktop and mobile
+    document.body.addEventListener('submit', async (e) => {
+      if (e.target.id !== 'add-feed-form') return;
       e.preventDefault();
-      const urlsTextarea = document.getElementById('feed-urls');
+      const urlsTextarea = e.target.querySelector('#feed-urls');
       const urls = urlsTextarea.value.split('\n').map(url => url.trim()).filter(url => url && url.startsWith('http'));
 
       if (urls.length === 0) {
