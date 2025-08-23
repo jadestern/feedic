@@ -4,7 +4,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>모던 RSS 리더</title>
+  <link rel="icon" type="image/x-icon" href="public/favicon.ico" />
+  <meta name="description" content="RSS Reader" />
+  <link rel="apple-touch-icon" sizes="180x180" href="public/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="public/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="public/favicon-16x16.png" />
+  <link rel="manifest" href="public/site.webmanifest" />
+  <title>Feedic</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     // Configure Tailwind CSS for dark mode
@@ -143,10 +149,18 @@
       right: auto;
       top: var(--sl-spacing-medium);
     }
+
+    #global-loader {
+      transition: opacity 0.3s ease-in-out;
+    }
   </style>
 </head>
 
 <body class="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 antialiased">
+
+  <div id="global-loader" class="fixed inset-0 bg-white dark:bg-gray-900 z-[9999] flex items-center justify-center">
+    <sl-spinner style="font-size: 3rem;"></sl-spinner>
+  </div>
 
   <!-- Main App View -->
   <div id="main-container" class="relative min-h-screen">
@@ -801,6 +815,7 @@
 
     // 7. 앱 시작
     window.addEventListener('load', async () => {
+      const globalLoader = document.getElementById('global-loader');
       try {
         const savedWidth = localStorage.getItem('sidebarWidth');
         if (savedWidth) {
@@ -826,6 +841,11 @@
       } catch (error) {
         console.error("앱 초기화 실패:", error);
         document.body.innerHTML = '<div class="p-4 text-red-600">앱 초기화 실패. IndexedDB를 지원하는지 확인해주세요.</div>';
+      } finally {
+        globalLoader.style.opacity = '0';
+        setTimeout(() => {
+          globalLoader.style.display = 'none';
+        }, 300);
       }
     });
   </script>
