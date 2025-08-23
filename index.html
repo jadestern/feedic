@@ -3,14 +3,15 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/x-icon" href="public/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="RSS Reader" />
   <link rel="apple-touch-icon" sizes="180x180" href="public/apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="public/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="public/favicon-16x16.png" />
   <link rel="manifest" href="public/site.webmanifest" />
   <title>Feedic</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     // Configure Tailwind CSS for dark mode
@@ -152,6 +153,10 @@
 
     #global-loader {
       transition: opacity 0.3s ease-in-out;
+    }
+
+    sl-tab sl-badge {
+      margin-left: var(--sl-spacing-x-small);
     }
   </style>
 </head>
@@ -373,6 +378,13 @@
       const allArticles = await getArticles(feedUrl);
       const feeds = await getAllFeeds();
       const feedsMap = new Map(feeds.map(f => [f.url, f]));
+
+      // Update tab counts
+      const unreadCount = allArticles.filter(a => !a.read).length;
+      const readCount = allArticles.filter(a => a.read).length;
+      document.querySelector('sl-tab[panel="unread"]').innerHTML = `읽지 않음 <sl-badge pill>${unreadCount}</sl-badge>`;
+      document.querySelector('sl-tab[panel="read"]').innerHTML = `읽음 <sl-badge pill>${readCount}</sl-badge>`;
+      document.querySelector('sl-tab[panel="all"]').innerHTML = `모두 <sl-badge pill>${allArticles.length}</sl-badge>`;
 
       if (articleFilter === 'unread') currentVisibleArticles = allArticles.filter(a => !a.read);
       else if (articleFilter === 'read') currentVisibleArticles = allArticles.filter(a => a.read);
@@ -753,14 +765,21 @@
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
 
+      let animationFrameId = null;
       function onMouseMove(e) {
-        const newWidth = e.clientX;
-        const containerRect = sidebar.parentElement.getBoundingClientRect();
-        const newRelativeWidth = (newWidth - containerRect.left) / containerRect.width * 100;
-        document.documentElement.style.setProperty('--sidebar-width', `${newRelativeWidth}%`);
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
+        animationFrameId = requestAnimationFrame(() => {
+          const newWidth = e.clientX;
+          const containerRect = sidebar.parentElement.getBoundingClientRect();
+          const newRelativeWidth = (newWidth - containerRect.left) / containerRect.width * 100;
+          document.documentElement.style.setProperty('--sidebar-width', `${newRelativeWidth}%`);
+        });
       }
 
       function onMouseUp() {
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
         document.removeEventListener('mousemove', onMouseMove);
