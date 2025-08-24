@@ -88,10 +88,41 @@
     #detail-content ol {
       padding-left: 1.5em;
       margin-bottom: 1em;
+      margin-top: 0.5em;
+    }
+
+    #detail-content ul {
+      list-style-type: disc;
+    }
+
+    #detail-content ol {
+      list-style-type: decimal;
+    }
+
+    #detail-content ul ul {
+      list-style-type: circle;
+      margin-top: 0.25em;
+      margin-bottom: 0.25em;
+    }
+
+    #detail-content ol ol {
+      list-style-type: lower-alpha;
+      margin-top: 0.25em;
+      margin-bottom: 0.25em;
     }
 
     #detail-content li {
       margin-bottom: 0.5em;
+      line-height: 1.6;
+      padding-left: 0.25em;
+    }
+
+    #detail-content li > p {
+      margin-bottom: 0.5em;
+    }
+
+    #detail-content li:last-child {
+      margin-bottom: 0;
     }
 
     /* Styling for code blocks */
@@ -566,6 +597,124 @@
       alert.toast();
     };
 
+    async function fetchComments(url) {
+      // news.hada.io 댓글 가져오기
+      if (url.includes('news.hada.io')) {
+        try {
+          const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+          const response = await fetch(proxyUrl);
+          if (!response.ok) throw new Error('Network response was not ok.');
+          const html = await response.text();
+          
+          const doc = new DOMParser().parseFromString(html, 'text/html');
+          const comments = [];
+          
+          const commentRows = doc.querySelectorAll('.comment_row');
+          commentRows.forEach((row, index) => {
+            const authorLink = row.querySelector('a[href*="/user?id="]');
+            const author = authorLink ? authorLink.textContent.trim() : '익명';
+            
+            const timeElement = row.querySelector('.comment_meta');
+            const timeText = timeElement ? timeElement.textContent.trim() : '';
+            
+            const commentContent = row.querySelector('.comment');
+            const content = commentContent ? commentContent.textContent.trim() : '';
+            
+            if (content && content.length > 0) {
+              comments.push({
+                id: index + 1,
+                author: author,
+                time: timeText,
+                content: content
+              });
+            }
+          });
+          
+          return comments;
+        } catch (error) {
+          console.error('Error fetching comments:', error);
+          return [];
+        }
+      }
+      
+      // clien.net 댓글 가져오기
+      if (url.includes('clien.net')) {
+        try {
+          const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+          const response = await fetch(proxyUrl);
+          if (!response.ok) throw new Error('Network response was not ok.');
+          const html = await response.text();
+          
+          const doc = new DOMParser().parseFromString(html, 'text/html');
+          const comments = [];
+          
+          // clien.net의 댓글은 comment-head 섹션 내에 있음
+          const commentSection = doc.querySelector('#comment-head');
+          if (commentSection) {
+            // 댓글 패턴을 정규식으로 추출
+            const commentText = commentSection.textContent;
+            const lines = commentText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            
+            let currentComment = null;
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
+              
+              // 댓글 ID 패턴 (#숫자)
+              if (line.match(/^#\d+$/)) {
+                if (currentComment && currentComment.content) {
+                  comments.push(currentComment);
+                }
+                currentComment = { id: line };
+              }
+              // IP 주소 패턴
+              else if (line.startsWith('IP ')) {
+                if (currentComment) currentComment.ip = line;
+              }
+              // 날짜/시간 패턴 (25-08-23 2025-08-23 20:34:42 형식)
+              else if (line.match(/\d{2}-\d{2}-\d{2}\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/)) {
+                if (currentComment) currentComment.time = line;
+              }
+              // 대댓글, 공감, 신고 등 액션 라인 스킵
+              else if (line.includes('대댓글') || line.includes('공감') || line.includes('신고')) {
+                continue;
+              }
+              // 숫자만 있는 라인 (공감 수) 스킵
+              else if (line.match(/^\d+$/)) {
+                continue;
+              }
+              // LINK 라인 스킵
+              else if (line === 'LINK') {
+                continue;
+              }
+              // 실제 댓글 내용
+              else if (currentComment && line.length > 2) {
+                currentComment.content = line;
+                currentComment.author = '클리앙 사용자'; // clien.net은 작성자명이 별도로 표시되지 않음
+              }
+            }
+            
+            // 마지막 댓글 추가
+            if (currentComment && currentComment.content) {
+              comments.push(currentComment);
+            }
+          }
+          
+          return comments.map((comment, index) => ({
+            id: index + 1,
+            author: comment.author || '클리앙 사용자',
+            time: comment.time || '',
+            content: comment.content || ''
+          }));
+        } catch (error) {
+          console.error('Error fetching clien.net comments:', error);
+          return [];
+        }
+      }
+      
+      // 다른 사이트는 빈 배열 반환
+      return [];
+    }
+
     async function fetchAndDisplayFullContent(url, fallbackContent) {
       const detailContentEl = document.getElementById('detail-content');
       detailContentEl.innerHTML = '<div class="flex justify-center items-center p-8"><sl-spinner class="text-4xl"></sl-spinner></div>';
@@ -585,6 +734,29 @@
         } else {
           throw new Error('Readability could not parse the article.');
         }
+        
+        // 댓글 가져오기 및 표시
+        const comments = await fetchComments(url);
+        if (comments.length > 0) {
+          const commentsHtml = `
+            <div id="comments-section" class="mt-12 pt-8 border-t dark:border-gray-700">
+              <h3 class="text-xl font-bold mb-6 text-gray-900 dark:text-gray-100">댓글 ${comments.length}개</h3>
+              <div class="space-y-4">
+                ${comments.map(comment => `
+                  <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="font-semibold text-gray-900 dark:text-gray-100">${comment.author}</span>
+                      <span class="text-sm text-gray-500 dark:text-gray-400">${comment.time}</span>
+                    </div>
+                    <div class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">${comment.content}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+          detailContentEl.innerHTML += commentsHtml;
+        }
+        
       } catch (error) {
         console.error('Error fetching full content:', error);
         detailContentEl.innerHTML = fallbackContent + '<p class="text-red-500 mt-4">전체 기사를 불러오는데 실패했습니다. 요약본을 표시합니다.</p>';
