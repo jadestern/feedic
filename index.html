@@ -243,24 +243,8 @@
       margin-left: var(--sl-spacing-x-small);
     }
 
-    .new-article-separator {
-      border-top: 2px solid #ef4444;
-      margin: 1rem 0;
-      position: relative;
-    }
-
-    .new-article-separator::before {
-      content: '새로운 기사';
-      position: absolute;
-      top: -0.75rem;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #ef4444;
-      color: white;
-      padding: 0.25rem 0.5rem;
-      border-radius: 0.25rem;
-      font-size: 0.75rem;
-      font-weight: 500;
+    .article-item.new-article {
+      border-left: 4px solid #ef4444;
     }
   </style>
 </head>
@@ -529,20 +513,12 @@
       emptyStateEl.classList.toggle('hidden', currentVisibleArticles.length > 0);
       document.getElementById('mark-all-read-btn').style.display = (articleFilter !== 'read' && currentVisibleArticles.length > 0) ? 'block' : 'none';
 
-      let separatorAdded = false;
       currentVisibleArticles.forEach((article, index) => {
-        // Add separator before the first new article
-        if (!separatorAdded && newArticleGuids.has(article.guid)) {
-          const separatorEl = document.createElement('div');
-          separatorEl.className = 'new-article-separator';
-          articleListEl.appendChild(separatorEl);
-          separatorAdded = true;
-        }
-        
         const feed = feedsMap.get(article.feedUrl);
         const faviconUrl = feed ? feed.faviconUrl : '';
         const articleEl = document.createElement('div');
-        articleEl.className = `article-item group bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 cursor-pointer ${article.read ? 'read' : ''}`;
+        const newArticleClass = newArticleGuids.has(article.guid) ? 'new-article' : '';
+        articleEl.className = `article-item group bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 cursor-pointer ${article.read ? 'read' : ''} ${newArticleClass}`;
         articleEl.dataset.guid = article.guid;
         articleEl.setAttribute('tabindex', '0'); // Make focusable
         const pubDate = new Date(article.pubDate).toLocaleString('ko-KR');
@@ -682,30 +658,96 @@
           if (!response.ok) throw new Error('Network response was not ok.');
           const html = await response.text();
           
+          console.log('Fetched HTML length:', html.length); // 디버깅용
+          
           const doc = new DOMParser().parseFromString(html, 'text/html');
           const comments = [];
           
-          const commentRows = doc.querySelectorAll('.comment_row');
-          commentRows.forEach((row, index) => {
-            const authorLink = row.querySelector('a[href*="/user?id="]');
-            const author = authorLink ? authorLink.textContent.trim() : '익명';
+          // 다양한 댓글 선택자 시도
+          const possibleSelectors = [
+            '.comment_row',
+            '.comment',
+            '[class*="comment"]',
+            '.cmt_row',
+            '#comments .row',
+            '.comment-item'
+          ];
+          
+          let commentElements = [];
+          for (const selector of possibleSelectors) {
+            commentElements = doc.querySelectorAll(selector);
+            console.log(`Selector ${selector} found ${commentElements.length} elements`);
+            if (commentElements.length > 0) break;
+          }
+          
+          // 만약 특정 선택자로 찾지 못하면 전체 텍스트에서 댓글 패턴 검색
+          if (commentElements.length === 0) {
+            console.log('No comment elements found, searching in full text');
+            const bodyText = doc.body ? doc.body.textContent : html;
             
-            const timeElement = row.querySelector('.comment_meta');
-            const timeText = timeElement ? timeElement.textContent.trim() : '';
-            
-            const commentContent = row.querySelector('.comment');
-            const content = commentContent ? commentContent.textContent.trim() : '';
-            
-            if (content && content.length > 0) {
-              comments.push({
-                id: index + 1,
-                author: author,
-                time: timeText,
-                content: content
+            // news.hada.io 댓글 패턴 매칭 (예: 사용자명 + 시간 + 댓글내용)
+            const commentMatches = bodyText.match(/(\w+)\s*(\d+[일시분초]전|\d{4}-\d{2}-\d{2}[^가-힣]*)\s*([가-힣\w\s.,!?]+)/g);
+            if (commentMatches) {
+              commentMatches.forEach((match, index) => {
+                const parts = match.match(/(\w+)\s*(\d+[일시분초]전|\d{4}-\d{2}-\d{2}[^가-힣]*)\s*(.+)/);
+                if (parts && parts.length >= 4) {
+                  comments.push({
+                    id: index + 1,
+                    author: parts[1],
+                    time: parts[2],
+                    content: parts[3].trim()
+                  });
+                }
               });
             }
-          });
+          } else {
+            // 일반적인 DOM 파싱
+            commentElements.forEach((element, index) => {
+              // 작성자 찾기
+              const authorSelectors = ['a[href*="/user"]', '.author', '.username', '.user'];
+              let author = '익명';
+              for (const selector of authorSelectors) {
+                const authorEl = element.querySelector(selector);
+                if (authorEl) {
+                  author = authorEl.textContent.trim();
+                  break;
+                }
+              }
+              
+              // 시간 찾기
+              const timeSelectors = ['.time', '.date', '.meta', '[class*="time"]', '[class*="date"]'];
+              let timeText = '';
+              for (const selector of timeSelectors) {
+                const timeEl = element.querySelector(selector);
+                if (timeEl) {
+                  timeText = timeEl.textContent.trim();
+                  break;
+                }
+              }
+              
+              // 댓글 내용 찾기
+              let content = element.textContent.trim();
+              const contentSelectors = ['.content', '.text', '.body', 'p'];
+              for (const selector of contentSelectors) {
+                const contentEl = element.querySelector(selector);
+                if (contentEl) {
+                  content = contentEl.textContent.trim();
+                  break;
+                }
+              }
+              
+              if (content && content.length > 10) {
+                comments.push({
+                  id: index + 1,
+                  author: author,
+                  time: timeText,
+                  content: content
+                });
+              }
+            });
+          }
           
+          console.log('Found comments:', comments.length);
           return comments;
         } catch (error) {
           console.error('Error fetching comments:', error);
