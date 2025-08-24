@@ -437,8 +437,7 @@
           class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-3 py-1 mr-4">Space</kbd><span>선택한
           기사 상세 보기</span></li>
       <li class="flex items-center"><kbd
-          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mr-4">Esc</kbd> / <kbd
-          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mx-2">⌫</kbd><span>상세
+          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mr-4">⌫</kbd><span>상세
           보기에서 목록으로 돌아가기 / 도움말 닫기</span></li>
     </ul>
     <sl-button slot="footer" variant="primary" onclick="document.getElementById('help-modal').hide()">닫기</sl-button>
@@ -1175,25 +1174,14 @@
         
         console.log('Key pressed:', e.key, 'Detail view visible:', isDetailViewVisible); // 디버깅
         
-        if (e.key === 'Escape') {
-          console.log('Escape key detected'); // 디버깅
+        if (e.key === 'Backspace') {
+          e.preventDefault();
+          e.stopPropagation();
           if (helpModal && helpModal.open) {
             helpModal.hide();
           } else if (isDetailViewVisible) {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('Hiding detail view'); // 디버깅
             hideDetailView();
           }
-          return;
-        }
-        
-        // 백스페이스도 추가해보자 (더 확실한 키)
-        if (e.key === 'Backspace' && isDetailViewVisible) {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log('Backspace - hiding detail view'); // 디버깅
-          hideDetailView();
           return;
         }
         
