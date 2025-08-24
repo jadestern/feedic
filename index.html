@@ -428,7 +428,7 @@
       <li class="flex items-center"><kbd
           class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mr-4">↑</kbd> / <kbd
           class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mx-2">↓</kbd><span>기사
-          목록에서 이동</span></li>
+          목록에서 이동 / 상세 보기에서 스크롤</span></li>
       <li class="flex items-center"><kbd
           class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mr-4">←</kbd> / <kbd
           class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mx-2">→</kbd><span>상세
@@ -437,14 +437,8 @@
           class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-3 py-1 mr-4">Space</kbd><span>선택한
           기사 상세 보기</span></li>
       <li class="flex items-center"><kbd
-          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mr-4">↑</kbd><span>상세
-          보기에서 목록으로 돌아가기</span></li>
-      <li class="flex items-center"><kbd
-          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mr-4">↓</kbd><span>상세
-          보기에서 스크롤 다운</span></li>
-      <li class="flex items-center"><kbd
-          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mr-4">Esc</kbd><span>도움말
-          닫기</span></li>
+          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mr-4">Esc</kbd><span>상세
+          보기에서 목록으로 돌아가기 / 도움말 닫기</span></li>
     </ul>
     <sl-button slot="footer" variant="primary" onclick="document.getElementById('help-modal').hide()">닫기</sl-button>
   </sl-dialog>
@@ -1166,29 +1160,34 @@
       }
 
       const helpModal = document.getElementById('help-modal');
-      if (e.key === 'Escape' && helpModal.open) {
-        helpModal.hide();
-        return;
-      }
-
-      // 상세 페이지가 표시되어 있는지 확인
       const detailContainer = document.getElementById('article-detail-container');
       const isDetailViewVisible = detailContainer && !detailContainer.classList.contains('hidden');
       
-      if (isDetailViewVisible) {
-        if (e.key === 'ArrowUp') {
+      if (e.key === 'Escape') {
+        if (helpModal.open) {
+          helpModal.hide();
+        } else if (isDetailViewVisible) {
           e.preventDefault();
           e.stopPropagation();
           hideDetailView();
-        } else if (e.key === 'ArrowRight') {
+        }
+        return;
+      }
+      
+      if (isDetailViewVisible) {
+        if (e.key === 'ArrowRight') {
           document.getElementById('detail-next-btn').click();
         } else if (e.key === 'ArrowLeft') {
           document.getElementById('detail-prev-btn').click();
-        } else if (e.key === 'ArrowDown') {
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
           e.preventDefault();
           const container = document.getElementById('detail-scroll-container');
           const scrollAmount = 120;
-          container.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+          if (e.key === 'ArrowDown') {
+            container.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+          } else {
+            container.scrollBy({ top: -scrollAmount, behavior: 'smooth' });
+          }
         }
       }
     });
