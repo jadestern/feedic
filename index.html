@@ -1165,7 +1165,8 @@
 
       if (!detailContainer.classList.contains('hidden')) {
         if (e.key === 'l') {
-          history.back();
+          e.preventDefault();
+          hideDetailView();
         } else if (e.key === 'ArrowRight') {
           document.getElementById('detail-next-btn').click();
         } else if (e.key === 'ArrowLeft') {
