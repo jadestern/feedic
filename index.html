@@ -246,6 +246,83 @@
     .article-item.new-article {
       border-left: 4px solid #ef4444;
     }
+
+    /* 댓글 내용 스타일링 */
+    .comment-content ul,
+    .comment-content ol {
+      padding-left: 1.5em;
+      margin-bottom: 1em;
+      margin-top: 0.5em;
+    }
+
+    .comment-content ul {
+      list-style-type: disc;
+    }
+
+    .comment-content ol {
+      list-style-type: decimal;
+    }
+
+    .comment-content ul ul {
+      list-style-type: circle;
+      margin-top: 0.25em;
+      margin-bottom: 0.25em;
+    }
+
+    .comment-content ol ol {
+      list-style-type: lower-alpha;
+      margin-top: 0.25em;
+      margin-bottom: 0.25em;
+    }
+
+    .comment-content li {
+      margin-bottom: 0.5em;
+      line-height: 1.6;
+      padding-left: 0.25em;
+    }
+
+    .comment-content li > p {
+      margin-bottom: 0.5em;
+    }
+
+    .comment-content li:last-child {
+      margin-bottom: 0;
+    }
+
+    .comment-content a {
+      color: var(--sl-color-primary-600);
+      text-decoration: underline;
+    }
+
+    .comment-content code {
+      background-color: #f3f4f6;
+      color: #1f2937;
+      padding: 0.125rem 0.25rem;
+      border-radius: 0.25rem;
+      font-size: 0.875em;
+      font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    }
+
+    .dark .comment-content code {
+      background-color: #374151;
+      color: #e5e7eb;
+    }
+
+    .comment-content h6 {
+      font-size: 1em;
+      font-weight: 600;
+      margin-bottom: 0.5em;
+      margin-top: 1em;
+    }
+
+    .comment-content h6:first-child {
+      margin-top: 0;
+    }
+
+    .comment-content p {
+      margin-bottom: 0.75em;
+      line-height: 1.6;
+    }
   </style>
 </head>
 
@@ -658,96 +735,61 @@
           if (!response.ok) throw new Error('Network response was not ok.');
           const html = await response.text();
           
-          console.log('Fetched HTML length:', html.length); // 디버깅용
+          console.log('Fetched HTML length:', html.length);
           
           const doc = new DOMParser().parseFromString(html, 'text/html');
           const comments = [];
           
-          // 다양한 댓글 선택자 시도
-          const possibleSelectors = [
-            '.comment_row',
-            '.comment',
-            '[class*="comment"]',
-            '.cmt_row',
-            '#comments .row',
-            '.comment-item'
-          ];
+          // news.hada.io의 실제 댓글 구조 파싱
+          const commentRows = doc.querySelectorAll('tr[id^="comment_tr_"]');
+          console.log(`Found ${commentRows.length} comment rows`);
           
-          let commentElements = [];
-          for (const selector of possibleSelectors) {
-            commentElements = doc.querySelectorAll(selector);
-            console.log(`Selector ${selector} found ${commentElements.length} elements`);
-            if (commentElements.length > 0) break;
-          }
-          
-          // 만약 특정 선택자로 찾지 못하면 전체 텍스트에서 댓글 패턴 검색
-          if (commentElements.length === 0) {
-            console.log('No comment elements found, searching in full text');
-            const bodyText = doc.body ? doc.body.textContent : html;
-            
-            // news.hada.io 댓글 패턴 매칭 (예: 사용자명 + 시간 + 댓글내용)
-            const commentMatches = bodyText.match(/(\w+)\s*(\d+[일시분초]전|\d{4}-\d{2}-\d{2}[^가-힣]*)\s*([가-힣\w\s.,!?]+)/g);
-            if (commentMatches) {
-              commentMatches.forEach((match, index) => {
-                const parts = match.match(/(\w+)\s*(\d+[일시분초]전|\d{4}-\d{2}-\d{2}[^가-힣]*)\s*(.+)/);
-                if (parts && parts.length >= 4) {
-                  comments.push({
-                    id: index + 1,
-                    author: parts[1],
-                    time: parts[2],
-                    content: parts[3].trim()
-                  });
-                }
-              });
-            }
-          } else {
-            // 일반적인 DOM 파싱
-            commentElements.forEach((element, index) => {
-              // 작성자 찾기
-              const authorSelectors = ['a[href*="/user"]', '.author', '.username', '.user'];
-              let author = '익명';
-              for (const selector of authorSelectors) {
-                const authorEl = element.querySelector(selector);
-                if (authorEl) {
-                  author = authorEl.textContent.trim();
-                  break;
-                }
-              }
+          commentRows.forEach((row, index) => {
+            try {
+              // 작성자 정보
+              const authorLink = row.querySelector('a[href*="/user?id="]');
+              const author = authorLink ? authorLink.textContent.trim() : '익명';
               
-              // 시간 찾기
-              const timeSelectors = ['.time', '.date', '.meta', '[class*="time"]', '[class*="date"]'];
+              // 시간 정보 - 댓글 메타 정보에서 추출
+              const metaElement = row.querySelector('.comment_meta');
               let timeText = '';
-              for (const selector of timeSelectors) {
-                const timeEl = element.querySelector(selector);
-                if (timeEl) {
-                  timeText = timeEl.textContent.trim();
-                  break;
-                }
+              if (metaElement) {
+                // 시간 정보가 있는 텍스트 노드 찾기
+                const textNodes = Array.from(metaElement.childNodes).filter(node => node.nodeType === Node.TEXT_NODE);
+                timeText = textNodes.map(node => node.textContent.trim()).filter(text => text).join(' ');
               }
               
-              // 댓글 내용 찾기
-              let content = element.textContent.trim();
-              const contentSelectors = ['.content', '.text', '.body', 'p'];
-              for (const selector of contentSelectors) {
-                const contentEl = element.querySelector(selector);
-                if (contentEl) {
-                  content = contentEl.textContent.trim();
-                  break;
-                }
+              // 댓글 내용 - HTML 구조 보존
+              const contentElement = row.querySelector('.comment_contents');
+              let content = '';
+              let htmlContent = '';
+              
+              if (contentElement) {
+                // HTML 구조를 보존하여 가져오기
+                htmlContent = contentElement.innerHTML;
+                content = contentElement.textContent.trim();
+                
+                console.log(`Comment ${index + 1} HTML length:`, htmlContent.length);
               }
               
-              if (content && content.length > 10) {
+              // 댓글 ID 추출
+              const commentId = row.id.replace('comment_tr_', '');
+              
+              if (content && content.length > 5) {
                 comments.push({
-                  id: index + 1,
+                  id: commentId,
                   author: author,
                   time: timeText,
-                  content: content
+                  content: content,
+                  htmlContent: htmlContent // HTML 구조 보존
                 });
               }
-            });
-          }
+            } catch (error) {
+              console.error(`Error parsing comment ${index}:`, error);
+            }
+          });
           
-          console.log('Found comments:', comments.length);
+          console.log('Successfully parsed comments:', comments.length);
           return comments;
         } catch (error) {
           console.error('Error fetching comments:', error);
@@ -866,7 +908,7 @@
                       <span class="font-semibold text-gray-900 dark:text-gray-100">${comment.author}</span>
                       <span class="text-sm text-gray-500 dark:text-gray-400">${comment.time}</span>
                     </div>
-                    <div class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">${comment.content}</div>
+                    <div class="comment-content text-gray-700 dark:text-gray-300">${comment.htmlContent || comment.content}</div>
                   </div>
                 `).join('')}
               </div>
