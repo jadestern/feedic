@@ -35,7 +35,8 @@
       box-sizing: border-box;
     }
 
-    html, body {
+    html,
+    body {
       width: 100%;
       max-width: 100vw;
       overflow-x: hidden;
@@ -117,7 +118,7 @@
       padding-left: 0.25em;
     }
 
-    #detail-content li > p {
+    #detail-content li>p {
       margin-bottom: 0.5em;
     }
 
@@ -281,7 +282,7 @@
       padding-left: 0.25em;
     }
 
-    .comment-content li > p {
+    .comment-content li>p {
       margin-bottom: 0.5em;
     }
 
@@ -359,7 +360,8 @@
             <div class="flex items-center space-x-3">
               <sl-icon-button id="menu-btn" name="list" label="Menu" class="md:hidden text-2xl"></sl-icon-button>
               <div class="flex flex-col">
-                <h2 id="current-feed-title" class="text-xl font-semibold truncate text-gray-900 dark:text-gray-100">모든 기사</h2>
+                <h2 id="current-feed-title" class="text-xl font-semibold truncate text-gray-900 dark:text-gray-100">모든
+                  기사</h2>
                 <span id="last-update-time" class="text-xs text-gray-500 dark:text-gray-400"></span>
               </div>
               <sl-icon-button id="help-btn" name="question-circle" label="Help" class="text-xl"></sl-icon-button>
@@ -514,7 +516,7 @@
         if (article) { article.read = read; store.put(article).onsuccess = () => resolve(article.read); }
       };
     });
-    
+
     function updateLastUpdateTime() {
       const lastUpdateEl = document.getElementById('last-update-time');
       if (lastUpdateTime) {
@@ -522,7 +524,7 @@
         const diffMs = now - lastUpdateTime;
         const diffMins = Math.floor(diffMs / (1000 * 60));
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-        
+
         let timeText = '';
         if (diffMins < 1) {
           timeText = '방금 업데이트';
@@ -536,7 +538,7 @@
         lastUpdateEl.textContent = timeText;
       }
     }
-    
+
     // Update time display every minute
     setInterval(updateLastUpdateTime, 60000);
 
@@ -573,13 +575,13 @@
       if (commentCountCache.has(url)) {
         return commentCountCache.get(url);
       }
-      
+
       // news.hada.io나 clien.net만 지원
       if (!url.includes('news.hada.io') && !url.includes('clien.net')) {
         commentCountCache.set(url, 0);
         return 0;
       }
-      
+
       try {
         const comments = await fetchComments(url);
         const count = comments ? comments.length : 0;
@@ -613,7 +615,7 @@
       document.getElementById('mark-all-read-btn').style.display = (articleFilter !== 'read' && currentVisibleArticles.length > 0) ? 'block' : 'none';
 
       // 댓글 개수를 병렬로 가져오기 (성능 향상)
-      const commentPromises = currentVisibleArticles.map(article => 
+      const commentPromises = currentVisibleArticles.map(article =>
         getCommentCount(article.link)
       );
       const commentCounts = await Promise.all(commentPromises);
@@ -629,7 +631,7 @@
         const pubDate = new Date(article.pubDate).toLocaleString('ko-KR');
         const commentCount = commentCounts[index];
         const commentBadge = commentCount > 0 ? `<sl-badge variant="neutral" pill class="ml-2">💬 ${commentCount}</sl-badge>` : '';
-        
+
         articleEl.innerHTML = `
                     <div class="flex items-start space-x-4">
                         <img src="${faviconUrl}" onerror="this.src='https://placehold.co/32x32/e2e8f0/64748b?text=RSS'; this.onerror=null;" class="w-8 h-8 rounded-full bg-gray-200" alt="피드 아이콘">
@@ -696,10 +698,10 @@
         const result = await saveArticles(articles);
         const newArticles = result.newArticles || [];
         const newArticlesAdded = result.hasNewArticles || false;
-        
+
         // Track new article GUIDs for visual separator
         newArticles.forEach(article => newArticleGuids.add(article.guid));
-        
+
         return { feedTitle, newArticlesAdded, newArticleCount: newArticles.length };
       } catch (error) {
         console.error(`'${feedUrl}' 피드 가져오기 오류:`, error);
@@ -708,10 +710,10 @@
     }
     async function refreshAllFeeds() {
       loaderEl.classList.remove('hidden');
-      
+
       // Clear previous new article markers
       newArticleGuids.clear();
-      
+
       const feeds = await getAllFeeds();
       const results = await Promise.allSettled(feeds.map(feed => fetchAndSaveFeed(feed.url)));
 
@@ -768,13 +770,13 @@
           const response = await fetch(proxyUrl);
           if (!response.ok) throw new Error('Network response was not ok.');
           const html = await response.text();
-          
+
           const doc = new DOMParser().parseFromString(html, 'text/html');
           const comments = [];
-          
+
           // news.hada.io의 댓글 구조 파싱
           let commentElements = [];
-          
+
           const selectors = [
             'tr[id^="comment_tr_"]',
             '.comment_row',
@@ -783,29 +785,29 @@
             '.comment',
             '[class*="comment"]'
           ];
-          
+
           for (const selector of selectors) {
             commentElements = doc.querySelectorAll(selector);
             if (commentElements.length > 0) break;
           }
-          
+
           commentElements.forEach((element, index) => {
             try {
               // 댓글 작성 폼이나 기타 UI 요소 제외
-              if (element.querySelector('form.write_comment') || 
-                  element.querySelector('textarea') || 
-                  element.querySelector('input[type="submit"]') ||
-                  element.classList.contains('write_comment') ||
-                  element.innerHTML.includes('댓글 달기') ||
-                  element.innerHTML.includes('댓글 적기')) {
+              if (element.querySelector('form.write_comment') ||
+                element.querySelector('textarea') ||
+                element.querySelector('input[type="submit"]') ||
+                element.classList.contains('write_comment') ||
+                element.innerHTML.includes('댓글 달기') ||
+                element.innerHTML.includes('댓글 적기')) {
                 return;
               }
-              
+
               // 작성자 정보
               const authorSelectors = ['a[href*="/user?id="]', 'a[href*="/user"]', '.author', '.username'];
               let author = '익명';
               let hasValidAuthor = false;
-              
+
               for (const selector of authorSelectors) {
                 const authorEl = element.querySelector(selector);
                 if (authorEl && authorEl.textContent.trim() && authorEl.textContent.trim() !== '익명') {
@@ -814,12 +816,12 @@
                   break;
                 }
               }
-              
+
               // 시간 정보
               const timeSelectors = ['.comment_meta', '.meta', '.time', '.date'];
               let timeText = '';
               let hasValidTime = false;
-              
+
               for (const selector of timeSelectors) {
                 const timeEl = element.querySelector(selector);
                 if (timeEl) {
@@ -831,36 +833,36 @@
                   }
                 }
               }
-              
+
               // 댓글 내용
               const contentSelectors = ['.comment_contents', '.contents', '.content', '.text', '.body'];
               let content = '';
               let htmlContent = '';
               let hasValidContent = false;
-              
+
               for (const selector of contentSelectors) {
                 const contentEl = element.querySelector(selector);
                 if (contentEl) {
                   htmlContent = contentEl.innerHTML;
                   content = contentEl.textContent.trim();
-                  
+
                   // 폼 관련 내용이나 빈 내용 제외
-                  if (content && 
-                      !content.includes('댓글 달기') && 
-                      !content.includes('댓글 적기') &&
-                      !content.includes('인증 이메일') &&
-                      content.length > 10) {
+                  if (content &&
+                    !content.includes('댓글 달기') &&
+                    !content.includes('댓글 적기') &&
+                    !content.includes('인증 이메일') &&
+                    content.length > 10) {
                     hasValidContent = true;
                     break;
                   }
                 }
               }
-              
+
               // 실제 댓글인지 검증 (작성자나 시간 정보가 있거나, 유효한 내용이 있는 경우만)
-              if ((hasValidAuthor || hasValidTime || hasValidContent) && 
-                  content && content.length > 10) {
+              if ((hasValidAuthor || hasValidTime || hasValidContent) &&
+                content && content.length > 10) {
                 const commentId = element.id || `comment_${index + 1}`;
-                
+
                 comments.push({
                   id: commentId,
                   author: author,
@@ -879,45 +881,82 @@
           return [];
         }
       }
-      
+
       // clien.net 댓글 가져오기
       if (url.includes('clien.net')) {
         try {
+          // URL에서 게시글 ID 추출
+          const urlMatch = url.match(/\/([^\/]+)\/(\d+)$/);
+          if (!urlMatch) {
+            console.log('Could not extract board and post ID from URL:', url);
+            return [];
+          }
+
+          const boardType = urlMatch[1]; // 'news'
+          const postId = urlMatch[2]; // '19048102'
+
+          console.log(`Clien.net: board=${boardType}, postId=${postId}`);
+
+          // 먼저 일반 페이지 로드 시도
           const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
           const response = await fetch(proxyUrl);
           if (!response.ok) throw new Error('Network response was not ok.');
           const html = await response.text();
-          
+
           const doc = new DOMParser().parseFromString(html, 'text/html');
-          const comments = [];
-          
+          let comments = [];
+
           // clien.net의 댓글 구조 파싱 - 실제 구조 기반
           console.log('Clien.net comment parsing - using actual structure');
-          
+
           // 댓글 컨테이너 찾기
           const commentContainer = doc.querySelector('.comment.ad_banner[data-role="comment"]');
-          
+          console.log('Comment container found:', !!commentContainer);
+
+          if (!commentContainer) {
+            // 다른 댓글 컨테이너 selector 시도
+            const alternativeSelectors = ['.comment.ad_banner', '.comment', '#comment-head', '[class*="comment"]'];
+            for (const selector of alternativeSelectors) {
+              const altContainer = doc.querySelector(selector);
+              if (altContainer) {
+                console.log(`Found alternative comment container with selector: ${selector}`);
+                console.log('Container HTML preview:', altContainer.innerHTML.substring(0, 200) + '...');
+                break;
+              }
+            }
+          }
+
           if (commentContainer) {
             // comment_row 요소들 찾기
             const commentRows = commentContainer.querySelectorAll('.comment_row[data-role="comment-row"]');
             console.log(`Found ${commentRows.length} comment rows`);
-            
+
+            // 댓글 컨테이너 내용 디버깅
+            if (commentRows.length === 0) {
+              console.log('Comment container HTML:', commentContainer.innerHTML.substring(0, 500) + '...');
+              console.log('All children in comment container:', commentContainer.children.length);
+              const allRows = commentContainer.querySelectorAll('.comment_row');
+              console.log(`Found ${allRows.length} rows without data-role filter`);
+              const allCommentDivs = commentContainer.querySelectorAll('div[class*="comment"]');
+              console.log(`Found ${allCommentDivs.length} divs with comment in class`);
+            }
+
             commentRows.forEach((row, index) => {
               try {
                 // 데이터 속성에서 정보 추출
                 const authorId = row.getAttribute('data-author-id');
                 const commentSn = row.getAttribute('data-comment-sn');
                 const isReply = row.classList.contains('re');
-                
+
                 console.log(`Processing comment row ${index + 1}: author=${authorId}, sn=${commentSn}, isReply=${isReply}`);
-                
+
                 // 닉네임 추출
                 const nicknameEl = row.querySelector('.nickname');
                 let author = authorId || '클리앙 사용자';
                 if (nicknameEl && nicknameEl.textContent.trim()) {
                   author = nicknameEl.textContent.trim();
                 }
-                
+
                 // 댓글 내용 추출
                 const contentEl = row.querySelector('.comment_view');
                 let content = '';
@@ -930,17 +969,17 @@
                   const fullText = row.textContent.trim();
                   const lines = fullText.split('\n').filter(line => line.trim());
                   for (const line of lines) {
-                    if (line.length > 5 && 
-                        !line.includes('공감') &&
-                        !line.includes('신고') &&
-                        !line.includes('대댓글') &&
-                        !line.match(/^\d+$/)) {
+                    if (line.length > 5 &&
+                      !line.includes('공감') &&
+                      !line.includes('신고') &&
+                      !line.includes('대댓글') &&
+                      !line.match(/^\d+$/)) {
                       content = line;
                       break;
                     }
                   }
                 }
-                
+
                 // 시간 정보 추출
                 const timeEl = row.querySelector('.time, .date, [class*="time"], [class*="date"]');
                 let timeText = '';
@@ -954,7 +993,7 @@
                     timeText = timeMatch[0];
                   }
                 }
-                
+
                 // 유효한 댓글만 추가
                 if (content && content.length > 1) {
                   comments.push({
@@ -976,17 +1015,18 @@
               }
             });
           }
-          
+
           console.log(`Structure-based parsing found ${comments.length} comments`);
-          
-          // class 기반으로 찾지 못한 경우 기존 방식 사용 (개선됨)
+
+          // 구조 기반으로 찾지 못한 경우 텍스트 기반 파싱 사용 (개선됨)
           if (comments.length === 0) {
             console.log('Fallback to text-based parsing');
-            
+            console.log('Document body length:', doc.body.textContent.length);
+
             // 다양한 댓글 섹션 selector 시도
             const commentSectionSelectors = ['#comment-head', '#comments', '.comments', '[id*="comment"]'];
             let commentSection = null;
-            
+
             for (const selector of commentSectionSelectors) {
               commentSection = doc.querySelector(selector);
               if (commentSection) {
@@ -994,30 +1034,39 @@
                 break;
               }
             }
-            
+
             // 전체 페이지에서 댓글 텍스트 찾기
             const textContent = commentSection ? commentSection.textContent : doc.body.textContent;
             const lines = textContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-            
+
             console.log(`Processing ${lines.length} text lines for comments`);
-            
+
+            // 댓글 ID 패턴이 있는지 먼저 확인
+            const allText = textContent;
+            const commentIdMatches = allText.match(/#\d{9,}/g);
+            console.log(`Found ${commentIdMatches ? commentIdMatches.length : 0} comment ID patterns in text:`, commentIdMatches ? commentIdMatches.slice(0, 5) : 'none');
+
+            // 텍스트 샘플 로그 (처음 10줄)
+            console.log('First 10 lines of text:', lines.slice(0, 10));
+
             // 댓글 ID 패턴으로 모든 댓글 찾기 (대댓글 포함)
             let currentComment = null;
             let commentCount = 0;
             let collectingContent = false;
-            
+
             for (let i = 0; i < lines.length; i++) {
               const line = lines[i];
-              
+
               // 댓글 ID 패턴 (#숫자 - 8자리 이상) 또는 대댓글 패턴
-              const commentIdMatch = line.match(/^#\d{8,}$/) || line.match(/^Re:\s*#\d{8,}$/);
+              const commentIdMatch = line.match(/^#\d{9,}$/) || line.match(/^Re:\s*#\d{9,}$/);
               if (commentIdMatch) {
+                console.log(`Found comment ID pattern: ${line}`);
                 if (currentComment && currentComment.content && currentComment.content.length > 5) {
                   comments.push(currentComment);
                   commentCount++;
                 }
                 const isReply = line.startsWith('Re:');
-                currentComment = { 
+                currentComment = {
                   id: line,
                   author: '클리앙 사용자',
                   time: '',
@@ -1053,55 +1102,83 @@
                 }
               }
               // 액션 라인들 스킵
-              else if (line.includes('대댓글') || line.includes('공감') || line.includes('신고') || 
-                       line === 'LINK' || line.match(/^\d+$/)) {
+              else if (line.includes('대댓글') || line.includes('공감') || line.includes('신고') ||
+                line === 'LINK' || line.match(/^\d+$/)) {
                 continue;
               }
               // 실제 댓글 내용 수집 (여러 줄 지원)
-              else if (currentComment && collectingContent && line.length > 0) {
-                // 시스템 메시지나 UI 텍스트가 아닌 실제 댓글 내용만
-                if (!line.includes('등록') && 
-                    !line.includes('수정') && 
-                    !line.includes('삭제') &&
-                    !line.includes('로그인') &&
-                    !line.includes('새로고침') &&
-                    !line.includes('목록') &&
-                    !line.match(/^(예|아니오|확인|취소|닫기)$/)) {
-                  
+              else if (currentComment && line.length > 3) {
+                // 시스템 메시지나 UI 텍스트 제외하고 실제 댓글 내용 찾기
+                if (!line.includes('대댓글') &&
+                  !line.includes('공감') &&
+                  !line.includes('신고') &&
+                  !line.includes('등록') &&
+                  !line.includes('수정') &&
+                  !line.includes('삭제') &&
+                  !line.includes('로그인') &&
+                  !line.includes('새로고침') &&
+                  !line.includes('목록') &&
+                  !line.startsWith('IP ') &&
+                  !line.match(/\d{2}-\d{2}-\d{2}/) &&
+                  !line.match(/^\d+$/) &&
+                  line !== 'LINK' &&
+                  !line.match(/^(예|아니오|확인|취소|닫기)$/)) {
+
                   // 첫 번째 내용이거나 기존 내용에 추가
                   if (!currentComment.content) {
                     currentComment.content = line;
-                    console.log(`Found content start: ${line.substring(0, 30)}...`);
-                  } else {
+                    collectingContent = true;
+                    console.log(`Found content start: ${line.substring(0, 50)}...`);
+                  } else if (collectingContent) {
                     // 긴 댓글의 연속된 줄 추가
                     currentComment.content += '\n' + line;
                     console.log(`Added content line: ${line.substring(0, 30)}...`);
                   }
                 }
               }
-              // 닉네임 설정 전 첫 번째 의미있는 내용
-              else if (currentComment && !currentComment.content && line.length > 5) {
-                if (!line.includes('등록') && 
-                    !line.includes('수정') && 
-                    !line.includes('삭제') &&
-                    !line.includes('로그인') &&
-                    !line.match(/^(예|아니오|확인|취소)$/)) {
-                  currentComment.content = line;
-                  collectingContent = true;
-                  console.log(`Found initial content: ${line.substring(0, 30)}...`);
-                }
-              }
             }
-            
+
             // 마지막 댓글 추가
             if (currentComment && currentComment.content && currentComment.content.length > 5) {
               comments.push(currentComment);
               commentCount++;
             }
-            
+
             console.log(`Text-based parsing found ${commentCount} comments`);
+
+            // 마지막으로 전체 HTML에서 댓글 패턴 직접 검색
+            if (comments.length === 0) {
+              console.log('Final attempt: searching entire HTML for comment patterns');
+              const fullHtml = html;
+
+              // 다양한 댓글 패턴 검색
+              const patterns = [
+                /#\d{9,}/g,  // 댓글 ID
+                /data-comment-sn="(\d+)"/g,  // 댓글 시리얼 넘버
+                /data-author-id="([^"]+)"/g,  // 작성자 ID
+              ];
+
+              patterns.forEach((pattern, index) => {
+                const matches = fullHtml.match(pattern);
+                console.log(`Pattern ${index + 1} matches:`, matches ? matches.length : 0, matches ? matches.slice(0, 3) : 'none');
+              });
+
+              // 댓글 관련 텍스트 직접 추출 시도
+              const commentRegex = /IP\s+\d+\.\♡\.\d+\.\d+[\s\S]*?(?=#\d+|$)/g;
+              const directMatches = fullHtml.match(commentRegex);
+              if (directMatches && directMatches.length > 0) {
+                console.log(`Found ${directMatches.length} direct comment patterns`);
+                directMatches.forEach((match, index) => {
+                  if (index < 3) {  // 처음 3개만 로그
+                    console.log(`Direct match ${index + 1}:`, match.substring(0, 100) + '...');
+                  }
+                });
+              }
+            }
           }
-          
+
+          console.log(`Final result: ${comments.length} comments found`);
+
           return comments.map((comment, index) => ({
             id: comment.id || index + 1,
             author: comment.author || '클리앙 사용자',
@@ -1117,7 +1194,7 @@
           return [];
         }
       }
-      
+
       // 다른 사이트는 빈 배열 반환
       return [];
     }
@@ -1141,9 +1218,11 @@
         } else {
           throw new Error('Readability could not parse the article.');
         }
-        
+
         // 댓글 가져오기 및 표시
+        console.log(`Fetching comments for URL: ${url}`);
         const comments = await fetchComments(url);
+        console.log(`Fetched ${comments.length} comments:`, comments);
         if (comments.length > 0) {
           const commentsHtml = `
             <div id="comments-section" class="mt-12 pt-8 border-t dark:border-gray-700">
@@ -1165,9 +1244,29 @@
               </div>
             </div>
           `;
+          console.log(`Adding comments HTML to detail content`);
           detailContentEl.innerHTML += commentsHtml;
+        } else {
+          console.log(`No comments found for URL: ${url}`);
+          // 댓글이 없는 경우에도 사용자에게 알림 표시
+          if (url.includes('clien.net') || url.includes('news.hada.io')) {
+            const noCommentsHtml = `
+              <div id="comments-section" class="mt-12 pt-8 border-t dark:border-gray-700">
+                <h3 class="text-xl font-bold mb-6 text-gray-900 dark:text-gray-100">댓글</h3>
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
+                  <p class="text-gray-600 dark:text-gray-400">
+                    댓글을 불러오지 못했습니다. 
+                    <a href="${url}" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline">
+                      원본 페이지에서 확인하기
+                    </a>
+                  </p>
+                </div>
+              </div>
+            `;
+            detailContentEl.innerHTML += noCommentsHtml;
+          }
         }
-        
+
       } catch (error) {
         console.error('Error fetching full content:', error);
         detailContentEl.innerHTML = fallbackContent + '<p class="text-red-500 mt-4">전체 기사를 불러오는데 실패했습니다. 요약본을 표시합니다.</p>';
@@ -1249,7 +1348,7 @@
       submitButton.loading = true;
       submitButton.disabled = true;
       loaderEl.classList.remove('hidden');
-      
+
       const existingFeeds = await getAllFeeds();
       const existingUrls = new Set(existingFeeds.map(f => f.url));
       const newUrls = urls.filter(url => !existingUrls.has(url));
@@ -1283,7 +1382,7 @@
       urlsTextarea.value = '';
       await renderFeeds();
       await renderArticles(currentFilter);
-      
+
       // 버튼 로딩 상태 종료
       submitButton.loading = false;
       submitButton.disabled = false;
@@ -1300,7 +1399,7 @@
       if (failedCount > 0) message += `${failedCount}개 추가에 실패했습니다.`;
       const messageType = successfulCount > 0 ? 'success' : 'error';
       showMessage(message.trim(), messageType);
-      
+
       // Update last update time when adding feeds
       if (successfulCount > 0) {
         lastUpdateTime = new Date();
@@ -1378,7 +1477,7 @@
         { target: window, event: 'keydown' },
         { target: document.body, event: 'keydown' }
       ];
-      
+
       const handleKey = (e) => {
         // 입력 필드에서 키 입력 시 무시
         if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
@@ -1388,9 +1487,9 @@
         const helpModal = document.getElementById('help-modal');
         const detailContainer = document.getElementById('article-detail-container');
         const isDetailViewVisible = detailContainer && !detailContainer.classList.contains('hidden');
-        
+
         console.log('Key pressed:', e.key, 'Detail view visible:', isDetailViewVisible); // 디버깅
-        
+
         if (e.key === 'Backspace') {
           e.preventDefault();
           e.stopPropagation();
@@ -1401,7 +1500,7 @@
           }
           return;
         }
-        
+
         if (isDetailViewVisible) {
           if (e.key === 'ArrowRight') {
             document.getElementById('detail-next-btn').click();
@@ -1419,12 +1518,12 @@
           }
         }
       };
-      
+
       handlers.forEach(({ target, event }) => {
         target.addEventListener(event, handleKey, { capture: true });
       });
     }
-    
+
     // DOM 로드 후 핸들러 설정
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', setupKeyboardHandlers);
