@@ -757,14 +757,26 @@
           
           commentElements.forEach((element, index) => {
             try {
+              // 댓글 작성 폼이나 기타 UI 요소 제외
+              if (element.querySelector('form.write_comment') || 
+                  element.querySelector('textarea') || 
+                  element.querySelector('input[type="submit"]') ||
+                  element.classList.contains('write_comment') ||
+                  element.innerHTML.includes('댓글 달기') ||
+                  element.innerHTML.includes('댓글 적기')) {
+                return;
+              }
+              
               // 작성자 정보
               const authorSelectors = ['a[href*="/user?id="]', 'a[href*="/user"]', '.author', '.username'];
               let author = '익명';
+              let hasValidAuthor = false;
               
               for (const selector of authorSelectors) {
                 const authorEl = element.querySelector(selector);
-                if (authorEl) {
+                if (authorEl && authorEl.textContent.trim() && authorEl.textContent.trim() !== '익명') {
                   author = authorEl.textContent.trim();
+                  hasValidAuthor = true;
                   break;
                 }
               }
@@ -772,13 +784,17 @@
               // 시간 정보
               const timeSelectors = ['.comment_meta', '.meta', '.time', '.date'];
               let timeText = '';
+              let hasValidTime = false;
               
               for (const selector of timeSelectors) {
                 const timeEl = element.querySelector(selector);
                 if (timeEl) {
                   const textNodes = Array.from(timeEl.childNodes).filter(node => node.nodeType === Node.TEXT_NODE);
                   timeText = textNodes.map(node => node.textContent.trim()).filter(text => text).join(' ');
-                  if (timeText) break;
+                  if (timeText && (timeText.includes('전') || timeText.includes('시간') || timeText.includes('일'))) {
+                    hasValidTime = true;
+                    break;
+                  }
                 }
               }
               
@@ -786,24 +802,31 @@
               const contentSelectors = ['.comment_contents', '.contents', '.content', '.text', '.body'];
               let content = '';
               let htmlContent = '';
+              let hasValidContent = false;
               
               for (const selector of contentSelectors) {
                 const contentEl = element.querySelector(selector);
                 if (contentEl) {
                   htmlContent = contentEl.innerHTML;
                   content = contentEl.textContent.trim();
-                  break;
+                  
+                  // 폼 관련 내용이나 빈 내용 제외
+                  if (content && 
+                      !content.includes('댓글 달기') && 
+                      !content.includes('댓글 적기') &&
+                      !content.includes('인증 이메일') &&
+                      content.length > 10) {
+                    hasValidContent = true;
+                    break;
+                  }
                 }
               }
               
-              if (!content) {
-                content = element.textContent.trim();
-                htmlContent = element.innerHTML;
-              }
-              
-              const commentId = element.id || `comment_${index + 1}`;
-              
-              if (content && content.length > 10) {
+              // 실제 댓글인지 검증 (작성자나 시간 정보가 있거나, 유효한 내용이 있는 경우만)
+              if ((hasValidAuthor || hasValidTime || hasValidContent) && 
+                  content && content.length > 10) {
+                const commentId = element.id || `comment_${index + 1}`;
+                
                 comments.push({
                   id: commentId,
                   author: author,
