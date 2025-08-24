@@ -242,6 +242,26 @@
     sl-tab sl-badge {
       margin-left: var(--sl-spacing-x-small);
     }
+
+    .new-article-separator {
+      border-top: 2px solid #ef4444;
+      margin: 1rem 0;
+      position: relative;
+    }
+
+    .new-article-separator::before {
+      content: '새로운 기사';
+      position: absolute;
+      top: -0.75rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ef4444;
+      color: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
   </style>
 </head>
 
@@ -277,8 +297,10 @@
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center space-x-3">
               <sl-icon-button id="menu-btn" name="list" label="Menu" class="md:hidden text-2xl"></sl-icon-button>
-              <h2 id="current-feed-title" class="text-xl font-semibold truncate text-gray-900 dark:text-gray-100">모든 기사
-              </h2>
+              <div class="flex flex-col">
+                <h2 id="current-feed-title" class="text-xl font-semibold truncate text-gray-900 dark:text-gray-100">모든 기사</h2>
+                <span id="last-update-time" class="text-xs text-gray-500 dark:text-gray-400"></span>
+              </div>
               <sl-icon-button id="help-btn" name="question-circle" label="Help" class="text-xl"></sl-icon-button>
             </div>
             <div class="flex items-center space-x-2">
@@ -394,8 +416,9 @@
       tx.oncomplete = () => resolve();
     });
     async function saveArticles(articles) {
-      if (!articles || articles.length === 0) return false;
-      let newArticlesAdded = false;
+      if (!articles || articles.length === 0) return { hasNewArticles: false, newArticles: [] };
+      let hasNewArticles = false;
+      let newArticles = [];
       return new Promise((resolve) => {
         const tx = db.transaction([ARTICLE_STORE], 'readwrite');
         const store = tx.objectStore(ARTICLE_STORE);
@@ -410,13 +433,14 @@
             articles.forEach(newArticle => {
               const existing = existingArticles.get(newArticle.guid);
               if (!existing) {
-                newArticlesAdded = true;
+                hasNewArticles = true;
+                newArticles.push(newArticle);
               }
               store.put({ ...newArticle, read: existing ? existing.read : false });
             });
           }
         };
-        tx.oncomplete = () => resolve(newArticlesAdded);
+        tx.oncomplete = () => resolve({ hasNewArticles, newArticles });
       });
     }
     const getArticles = (feedUrl = null) => new Promise((resolve) => {
@@ -432,11 +456,38 @@
         if (article) { article.read = read; store.put(article).onsuccess = () => resolve(article.read); }
       };
     });
+    
+    function updateLastUpdateTime() {
+      const lastUpdateEl = document.getElementById('last-update-time');
+      if (lastUpdateTime) {
+        const now = new Date();
+        const diffMs = now - lastUpdateTime;
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        
+        let timeText = '';
+        if (diffMins < 1) {
+          timeText = '방금 업데이트';
+        } else if (diffMins < 60) {
+          timeText = `${diffMins}분 전 업데이트`;
+        } else if (diffHours < 24) {
+          timeText = `${diffHours}시간 전 업데이트`;
+        } else {
+          timeText = lastUpdateTime.toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' 업데이트';
+        }
+        lastUpdateEl.textContent = timeText;
+      }
+    }
+    
+    // Update time display every minute
+    setInterval(updateLastUpdateTime, 60000);
 
     // UI elements
     const feedListEl = document.getElementById('feed-list'), articleListEl = document.getElementById('article-list');
     const currentFeedTitleEl = document.getElementById('current-feed-title'), emptyStateEl = document.getElementById('empty-state');
     let currentFilter = null, articleFilter = 'unread', currentVisibleArticles = [], lastFocusedArticleGuid = null;
+    let newArticleGuids = new Set();
+    let lastUpdateTime = null;
 
     async function renderFeeds() {
       const feeds = await getAllFeeds();
@@ -478,7 +529,16 @@
       emptyStateEl.classList.toggle('hidden', currentVisibleArticles.length > 0);
       document.getElementById('mark-all-read-btn').style.display = (articleFilter !== 'read' && currentVisibleArticles.length > 0) ? 'block' : 'none';
 
-      currentVisibleArticles.forEach(article => {
+      let separatorAdded = false;
+      currentVisibleArticles.forEach((article, index) => {
+        // Add separator before the first new article
+        if (!separatorAdded && newArticleGuids.has(article.guid)) {
+          const separatorEl = document.createElement('div');
+          separatorEl.className = 'new-article-separator';
+          articleListEl.appendChild(separatorEl);
+          separatorAdded = true;
+        }
+        
         const feed = feedsMap.get(article.feedUrl);
         const faviconUrl = feed ? feed.faviconUrl : '';
         const articleEl = document.createElement('div');
@@ -546,8 +606,14 @@
           tx.onerror = (e) => reject(e.target.error);
         });
 
-        const newArticlesAdded = await saveArticles(articles);
-        return { feedTitle, newArticlesAdded };
+        const result = await saveArticles(articles);
+        const newArticles = result.newArticles || [];
+        const newArticlesAdded = result.hasNewArticles || false;
+        
+        // Track new article GUIDs for visual separator
+        newArticles.forEach(article => newArticleGuids.add(article.guid));
+        
+        return { feedTitle, newArticlesAdded, newArticleCount: newArticles.length };
       } catch (error) {
         console.error(`'${feedUrl}' 피드 가져오기 오류:`, error);
         throw error;
@@ -555,13 +621,19 @@
     }
     async function refreshAllFeeds() {
       loaderEl.classList.remove('hidden');
+      
+      // Clear previous new article markers
+      newArticleGuids.clear();
+      
       const feeds = await getAllFeeds();
       const results = await Promise.allSettled(feeds.map(feed => fetchAndSaveFeed(feed.url)));
 
       let anyNewArticles = false;
+      let totalNewArticles = 0;
       results.forEach(result => {
         if (result.status === 'fulfilled' && result.value.newArticlesAdded) {
           anyNewArticles = true;
+          totalNewArticles += result.value.newArticleCount || 0;
         }
       });
 
@@ -569,8 +641,12 @@
       await renderFeeds();
       await renderArticles(currentFilter);
 
+      // Update last update time
+      lastUpdateTime = new Date();
+      updateLastUpdateTime();
+
       if (anyNewArticles) {
-        showMessage('새로운 기사를 가져왔습니다.', 'success');
+        showMessage(`새로운 기사 ${totalNewArticles}개를 가져왔습니다.`, 'success');
       }
     }
 
@@ -849,8 +925,12 @@
 
       let successfulCount = 0;
       let failedCount = 0;
+      let totalNewArticlesFromFeeds = 0;
       results.forEach(result => {
-        if (result.status === 'fulfilled') successfulCount++;
+        if (result.status === 'fulfilled') {
+          successfulCount++;
+          totalNewArticlesFromFeeds += result.value.newArticleCount || 0;
+        }
         else {
           failedCount++;
           console.error('피드 추가 실패:', result.reason);
@@ -863,10 +943,22 @@
       loaderEl.classList.add('hidden');
 
       let message = '';
-      if (successfulCount > 0) message += `${successfulCount}개의 피드를 추가했습니다. `;
+      if (successfulCount > 0) {
+        message += `${successfulCount}개의 피드를 추가했습니다.`;
+        if (totalNewArticlesFromFeeds > 0) {
+          message += ` (새 기사 ${totalNewArticlesFromFeeds}개)`;
+        }
+        message += ' ';
+      }
       if (failedCount > 0) message += `${failedCount}개 추가에 실패했습니다.`;
       const messageType = successfulCount > 0 ? 'success' : 'error';
       showMessage(message.trim(), messageType);
+      
+      // Update last update time when adding feeds
+      if (successfulCount > 0) {
+        lastUpdateTime = new Date();
+        updateLastUpdateTime();
+      }
     });
 
     document.body.addEventListener('sl-select', async (e) => {
