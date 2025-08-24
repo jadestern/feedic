@@ -437,7 +437,8 @@
           class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-3 py-1 mr-4">Space</kbd><span>선택한
           기사 상세 보기</span></li>
       <li class="flex items-center"><kbd
-          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mr-4">Esc</kbd><span>상세
+          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mr-4">Esc</kbd> / <kbd
+          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mx-2">⌫</kbd><span>상세
           보기에서 목록으로 돌아가기 / 도움말 닫기</span></li>
     </ul>
     <sl-button slot="footer" variant="primary" onclick="document.getElementById('help-modal').hide()">닫기</sl-button>
@@ -1153,44 +1154,78 @@
       }
     });
 
-    document.addEventListener('keydown', (e) => {
-      // 입력 필드에서 키 입력 시 무시
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-        return;
-      }
-
-      const helpModal = document.getElementById('help-modal');
-      const detailContainer = document.getElementById('article-detail-container');
-      const isDetailViewVisible = detailContainer && !detailContainer.classList.contains('hidden');
+    // 키보드 이벤트를 여러 방법으로 처리
+    function setupKeyboardHandlers() {
+      const handlers = [
+        { target: document, event: 'keydown' },
+        { target: document, event: 'keypress' },
+        { target: window, event: 'keydown' },
+        { target: document.body, event: 'keydown' }
+      ];
       
-      if (e.key === 'Escape') {
-        if (helpModal.open) {
-          helpModal.hide();
-        } else if (isDetailViewVisible) {
+      const handleKey = (e) => {
+        // 입력 필드에서 키 입력 시 무시
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+          return;
+        }
+
+        const helpModal = document.getElementById('help-modal');
+        const detailContainer = document.getElementById('article-detail-container');
+        const isDetailViewVisible = detailContainer && !detailContainer.classList.contains('hidden');
+        
+        console.log('Key pressed:', e.key, 'Detail view visible:', isDetailViewVisible); // 디버깅
+        
+        if (e.key === 'Escape') {
+          console.log('Escape key detected'); // 디버깅
+          if (helpModal && helpModal.open) {
+            helpModal.hide();
+          } else if (isDetailViewVisible) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Hiding detail view'); // 디버깅
+            hideDetailView();
+          }
+          return;
+        }
+        
+        // 백스페이스도 추가해보자 (더 확실한 키)
+        if (e.key === 'Backspace' && isDetailViewVisible) {
           e.preventDefault();
           e.stopPropagation();
+          console.log('Backspace - hiding detail view'); // 디버깅
           hideDetailView();
+          return;
         }
-        return;
-      }
-      
-      if (isDetailViewVisible) {
-        if (e.key === 'ArrowRight') {
-          document.getElementById('detail-next-btn').click();
-        } else if (e.key === 'ArrowLeft') {
-          document.getElementById('detail-prev-btn').click();
-        } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-          e.preventDefault();
-          const container = document.getElementById('detail-scroll-container');
-          const scrollAmount = 120;
-          if (e.key === 'ArrowDown') {
-            container.scrollBy({ top: scrollAmount, behavior: 'smooth' });
-          } else {
-            container.scrollBy({ top: -scrollAmount, behavior: 'smooth' });
+        
+        if (isDetailViewVisible) {
+          if (e.key === 'ArrowRight') {
+            document.getElementById('detail-next-btn').click();
+          } else if (e.key === 'ArrowLeft') {
+            document.getElementById('detail-prev-btn').click();
+          } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            const container = document.getElementById('detail-scroll-container');
+            const scrollAmount = 120;
+            if (e.key === 'ArrowDown') {
+              container.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+            } else {
+              container.scrollBy({ top: -scrollAmount, behavior: 'smooth' });
+            }
           }
         }
-      }
-    });
+      };
+      
+      handlers.forEach(({ target, event }) => {
+        target.addEventListener(event, handleKey, { capture: true });
+      });
+    }
+    
+    // DOM 로드 후 핸들러 설정
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupKeyboardHandlers);
+    } else {
+      setupKeyboardHandlers();
+    }
 
     document.getElementById('article-filter-tabs').addEventListener('sl-tab-show', (e) => {
       articleFilter = e.detail.name;
