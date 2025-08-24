@@ -1157,15 +1157,26 @@
     });
 
     document.addEventListener('keydown', (e) => {
+      // 입력 필드에서 키 입력 시 무시
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
       const helpModal = document.getElementById('help-modal');
       if (e.key === 'Escape' && helpModal.open) {
         helpModal.hide();
         return;
       }
 
-      if (!detailContainer.classList.contains('hidden')) {
-        if (e.key === 'l') {
+      // 상세 페이지가 표시되어 있는지 확인
+      const detailContainer = document.getElementById('article-detail-container');
+      const isDetailViewVisible = detailContainer && !detailContainer.classList.contains('hidden');
+      
+      if (isDetailViewVisible) {
+        if (e.key === 'l' || e.key === 'L') {
           e.preventDefault();
+          e.stopPropagation();
+          console.log('l key pressed, hiding detail view'); // 디버깅용
           hideDetailView();
         } else if (e.key === 'ArrowRight') {
           document.getElementById('detail-next-btn').click();
