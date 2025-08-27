@@ -197,6 +197,7 @@
       }
     }
 
+
     @media (max-width: 400px) {
       .app-container {
         min-width: 0;
@@ -226,7 +227,119 @@
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+
+      /* Mobile header layout optimizations for 360px */
+      header .flex.items-center.justify-between.mb-4 {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      header .flex.items-center.space-x-3 {
+        flex: 1;
+        min-width: 0;
+      }
+
+      header .flex.items-center.space-x-2 {
+        flex-shrink: 0;
+      }
+
+      /* Second header row optimizations */
+      header .flex.items-center.justify-between:last-child {
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      /* Tab group responsive sizing */
+      #article-filter-tabs {
+        flex: 1;
+        min-width: 0;
+      }
+
+      #article-filter-tabs sl-tab {
+        font-size: 0.875rem;
+        padding: 0.25rem 0.5rem;
+      }
+
+      /* Read All button mobile optimization */
+      #mark-all-read-btn {
+        flex-shrink: 0;
+        font-size: 1.25rem !important;
+        width: 2rem;
+        height: 2rem;
+        min-width: 2rem;
+      }
+
+      /* Help button mobile sizing */
+      #help-btn {
+        font-size: 1rem !important;
+        width: 1.75rem;
+        height: 1.75rem;
+        min-width: 1.75rem;
+      }
+
+      /* Theme dropdown button mobile sizing */
+      sl-dropdown sl-icon-button {
+        font-size: 1rem !important;
+        width: 1.75rem;
+        height: 1.75rem;
+        min-width: 1.75rem;
+      }
+
+      /* Menu button mobile sizing */
+      #menu-btn {
+        font-size: 1.25rem !important;
+        width: 2rem;
+        height: 2rem;
+        min-width: 2rem;
+      }
     }
+
+    /* Additional breakpoint for very narrow screens (360px and below) */
+    @media (max-width: 360px) {
+      header {
+        padding: 0.5rem;
+      }
+
+      #current-feed-title {
+        max-width: 100px;
+      }
+
+      /* Further compress tab text on very narrow screens */
+      #article-filter-tabs sl-tab {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.375rem;
+      }
+
+      /* Ensure Read All button remains visible */
+      #mark-all-read-btn {
+        font-size: 1.125rem !important;
+        width: 1.875rem;
+        height: 1.875rem;
+        min-width: 1.875rem;
+      }
+
+      /* Compact other controls further */
+      #help-btn, sl-dropdown sl-icon-button {
+        font-size: 0.875rem !important;
+        width: 1.5rem;
+        height: 1.5rem;
+        min-width: 1.5rem;
+      }
+
+      /* Reduce gaps further */
+      header .flex.items-center.space-x-3 {
+        gap: 0.375rem;
+      }
+
+      header .flex.items-center.space-x-2 {
+        gap: 0.125rem;
+      }
+
+      header .flex.items-center.justify-between:last-child {
+        gap: 0.375rem;
+      }
+    }
+    
 
     /* Toast notification positioning */
     .sl-toast-stack {
