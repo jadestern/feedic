@@ -3,6 +3,32 @@
 [Feedic](https://github.com/jade-kim/gemini-feedic)의 모든 주목할만한 변경 사항이 이 파일에 기록됩니다.
 
 이 프로젝트는 [Semantic Versioning](https://semver.org/)을 따르며 [Conventional Commits](https://conventionalcommits.org/)를 사용합니다.
+## 1.1.0 (2025-09-08)
+
+
+### 🐞 버그 수정
+
+* handle long text overflow via word-break CSS rules ([9ba8881](https://github.com/jade-kim/gemini-feedic/commit/9ba88819ad548d532a2ab23af06253de89344ae6))
+
+
+### 📚 문서
+
+* Add comprehensive feature development plan ([ddf3ed6](https://github.com/jade-kim/gemini-feedic/commit/ddf3ed6942f3195365ba252900482cf402b3f322))
+* Update task management and project roadmap ([3f3bdea](https://github.com/jade-kim/gemini-feedic/commit/3f3bdea67f3bcb4a40ae46df74c58887067460fb))
+
+
+### ✨ 새로운 기능
+
+* Add relative time display and automatic article cleanup ([8e0b334](https://github.com/jade-kim/gemini-feedic/commit/8e0b3348de0a524a3426c3452332cccb1f1be0b8))
+* Implement dedicated search page with content preview ([52f2c69](https://github.com/jade-kim/gemini-feedic/commit/52f2c69dadc23918f9f98cd0fec1869ea169f911))
+* Improve mobile article card layout and UX ([c708f46](https://github.com/jade-kim/gemini-feedic/commit/c708f46a00b826e1589a2ef6730a71a7f7e7e7b9))
+* Remove 'All' tab for simplified UI ([cf5231f](https://github.com/jade-kim/gemini-feedic/commit/cf5231f13dfca3b02a5ac9c17dbcc57fa6dff0d6))
+* rename RSS 피드 to Feedic and add v1.0.0 badge ([7e84f5c](https://github.com/jade-kim/gemini-feedic/commit/7e84f5c12e0800a149867b29d80c3ac4c62201cc))
+
+
+### 📦 기타
+
+* **release:** bootstrap automated versioning system ([bae4c5b](https://github.com/jade-kim/gemini-feedic/commit/bae4c5b67bd611dab9c1caf5f562cc1ef24ca883))
 
 ## [1.0.0] - 2024-09-08
 
