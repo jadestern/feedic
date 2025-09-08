@@ -522,6 +522,90 @@
     .relative-time:hover {
       border-bottom-color: transparent;
     }
+    
+    /* Article card responsive layout */
+    .article-card-container {
+      width: 100%;
+    }
+    
+    /* Default: hide both layouts */
+    .article-desktop-layout {
+      display: none;
+    }
+    
+    .article-mobile-layout {
+      display: none;
+    }
+    
+    /* Desktop layout (768px and up) */
+    @media (min-width: 768px) {
+      .article-desktop-layout {
+        display: flex !important;
+      }
+      
+      .article-mobile-layout {
+        display: none !important;
+      }
+    }
+    
+    /* Mobile layout (below 768px) */
+    @media (max-width: 767px) {
+      .article-desktop-layout {
+        display: none !important;
+      }
+      
+      .article-mobile-layout {
+        display: block !important;
+      }
+      
+      /* Compact mobile padding */
+      .article-item {
+        padding: 0.75rem !important;
+        margin-bottom: 0.75rem !important;
+      }
+      
+      /* Remove default margins in mobile */
+      .article-mobile-layout * {
+        margin-block-start: 0;
+        margin-block-end: 0;
+      }
+      
+      /* Mobile actions alignment and spacing */
+      .article-actions-mobile {
+        margin: 0;
+        padding: 0;
+      }
+      
+      /* Smaller mobile buttons */
+      .article-actions-mobile sl-icon-button {
+        font-size: 1rem !important;
+        width: 2rem !important;
+        height: 2rem !important;
+      }
+      
+      .article-actions-mobile sl-button {
+        font-size: 0.75rem !important;
+        padding: 0.25rem 0.5rem !important;
+        height: auto !important;
+        min-height: 1.75rem !important;
+      }
+      
+      /* Better mobile author/date text */
+      .article-mobile-layout .text-sm {
+        font-size: 0.75rem;
+      }
+      
+      /* Optimize favicon size for mobile */
+      .article-mobile-layout img {
+        width: 1.5rem !important;
+        height: 1.5rem !important;
+      }
+      
+      /* Better mobile spacing */
+      .article-mobile-layout .flex.items-start.space-x-3 {
+        gap: 0.75rem;
+      }
+    }
   </style>
 </head>
 
@@ -993,21 +1077,49 @@
         const absoluteDate = new Date(article.pubDate).toLocaleString('ko-KR');
 
         articleEl.innerHTML = `
-                    <div class="flex items-start space-x-4">
-                        <img src="${faviconUrl}" onerror="this.src='https://placehold.co/32x32/e2e8f0/64748b?text=RSS'; this.onerror=null;" class="w-8 h-8 rounded-full bg-gray-200" alt="피드 아이콘">
-                        <div class="flex-1">
-                            <div class="flex items-center">
-                                <h3 class="text-lg font-bold text-blue-800 dark:text-blue-400 group-hover:underline flex-1">${article.title}</h3>
-                                <div class="comment-badge-container" data-url="${article.link}"></div>
+                    <div class="article-card-container">
+                        <!-- Desktop layout: horizontal -->
+                        <div class="article-desktop-layout flex items-start space-x-4">
+                            <img src="${faviconUrl}" onerror="this.src='https://placehold.co/32x32/e2e8f0/64748b?text=RSS'; this.onerror=null;" class="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" alt="피드 아이콘">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-start">
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-lg font-bold text-blue-800 dark:text-blue-400 group-hover:underline">${article.title}</h3>
+                                        <div class="flex items-center mt-1">
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                                ${article.author || '저자 없음'} &middot; 
+                                                <span class="relative-time" title="${absoluteDate}">${relativeTime}</span>
+                                            </p>
+                                            <div class="comment-badge-container ml-2" data-url="${article.link}"></div>
+                                        </div>
+                                    </div>
+                                    <div class="article-actions-desktop flex items-center space-x-2 ml-4">
+                                        <sl-icon-button name="${article.bookmarked ? 'star-fill' : 'star'}" label="북마크" class="bookmark-btn text-xl ${article.bookmarked ? 'text-yellow-500' : 'text-gray-400'}" data-guid="${article.guid}"></sl-icon-button>
+                                        <sl-button variant="${article.read ? 'default' : 'primary'}" size="small" pill class="toggle-read-btn">${article.read ? '안 읽음' : '읽음'}</sl-button>
+                                    </div>
+                                </div>
                             </div>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                ${article.author || '저자 없음'} &middot; 
-                                <span class="relative-time" title="${absoluteDate}">${relativeTime}</span>
-                            </p>
                         </div>
-                        <div class="flex items-center space-x-2">
-                            <sl-icon-button name="${article.bookmarked ? 'star-fill' : 'star'}" label="북마크" class="bookmark-btn text-xl ${article.bookmarked ? 'text-yellow-500' : 'text-gray-400'}" data-guid="${article.guid}"></sl-icon-button>
-                            <sl-button variant="${article.read ? 'default' : 'primary'}" size="small" pill class="toggle-read-btn">${article.read ? '안 읽음' : '읽음'}</sl-button>
+                        
+                        <!-- Mobile layout: vertical stack -->
+                        <div class="article-mobile-layout">
+                            <div class="flex items-start gap-3 mb-2">
+                                <img src="${faviconUrl}" onerror="this.src='https://placehold.co/32x32/e2e8f0/64748b?text=RSS'; this.onerror=null;" class="w-6 h-6 rounded-full bg-gray-200 flex-shrink-0 mt-0.5" alt="피드 아이콘">
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-base font-bold text-blue-800 dark:text-blue-400 group-hover:underline leading-tight mb-1">${article.title}</h3>
+                                    <div class="flex items-center">
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                                            ${article.author || '저자 없음'} &middot; 
+                                            <span class="relative-time" title="${absoluteDate}">${relativeTime}</span>
+                                        </p>
+                                        <div class="comment-badge-container ml-2" data-url="${article.link}"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="article-actions-mobile flex items-center justify-end gap-2">
+                                <sl-icon-button name="${article.bookmarked ? 'star-fill' : 'star'}" label="북마크" class="bookmark-btn ${article.bookmarked ? 'text-yellow-500' : 'text-gray-400'}" data-guid="${article.guid}"></sl-icon-button>
+                                <sl-button variant="${article.read ? 'default' : 'primary'}" size="small" pill class="toggle-read-btn">${article.read ? '안 읽음' : '읽음'}</sl-button>
+                            </div>
                         </div>
                     </div>`;
         articleListEl.appendChild(articleEl);
