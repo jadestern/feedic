@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="public/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="public/favicon-16x16.png" />
   <link rel="manifest" href="public/site.webmanifest" />
-  <title>Feedic</title>
+  <title>RSS Reader</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -348,6 +348,11 @@
     }
     
 
+    /* Mobile drawer header styling */
+    #mobile-sidebar-drawer::part(header) {
+      display: none;
+    }
+
     /* Toast notification positioning */
     .sl-toast-stack {
       left: 50%;
@@ -621,7 +626,10 @@
       <!-- Sidebar -->
       <aside id="sidebar" class="bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
         <div class="p-4 border-b dark:border-gray-700">
-          <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">Feedic <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">v1.0.0</span></h1>
+          <div class="flex items-center justify-between">
+            <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">Feedic <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">v1.1.1</span></h1>
+            <sl-icon-button id="mobile-close-btn" name="x-lg" label="Close" class="text-xl md:hidden"></sl-icon-button>
+          </div>
         </div>
         <div class="p-4 border-b dark:border-gray-700">
           <form id="add-feed-form" class="flex flex-col space-y-3">
@@ -680,7 +688,7 @@
   </div>
 
   <!-- Mobile Sidebar Drawer -->
-  <sl-drawer id="mobile-sidebar-drawer" label="Feedic" class="md:hidden">
+  <sl-drawer id="mobile-sidebar-drawer" class="md:hidden">
     <div id="mobile-sidebar-content" class="h-full flex flex-col"></div>
   </sl-drawer>
 
@@ -2077,6 +2085,16 @@
 
     // Mobile Menu Logic
     document.getElementById('menu-btn').addEventListener('click', () => document.getElementById('mobile-sidebar-drawer').show());
+    
+    // Mobile Close Button Logic - 모바일 사이드바가 복사된 후에 이벤트 추가
+    document.addEventListener('DOMContentLoaded', () => {
+      // 모바일 닫기 버튼 이벤트를 위임 방식으로 처리
+      document.body.addEventListener('click', (e) => {
+        if (e.target.closest('#mobile-close-btn')) {
+          document.getElementById('mobile-sidebar-drawer').hide();
+        }
+      });
+    });
 
     // Resizer Logic
     const resizer = document.getElementById('resizer');
