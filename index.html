@@ -360,6 +360,15 @@
       margin-left: var(--sl-spacing-x-small);
     }
 
+    .bookmark-btn {
+      transition: color 0.2s ease;
+    }
+
+    .bookmark-btn:hover {
+      color: #fbbf24 !important;
+      transform: scale(1.1);
+    }
+
     .article-item.new-article {
       border-left: 4px solid #ef4444;
     }
@@ -521,6 +530,7 @@
             <sl-tab-group id="article-filter-tabs">
               <sl-tab slot="nav" panel="unread" active>읽지 않음</sl-tab>
               <sl-tab slot="nav" panel="read">읽음</sl-tab>
+              <sl-tab slot="nav" panel="bookmarked">북마크</sl-tab>
               <sl-tab slot="nav" panel="all">모두</sl-tab>
             </sl-tab-group>
             <sl-icon-button id="mark-all-read-btn" name="check2-all" label="현재 목록 모두 읽음으로 표시"
@@ -601,6 +611,7 @@
             const store = db.createObjectStore(ARTICLE_STORE, { keyPath: 'guid' });
             store.createIndex('feedUrl', 'feedUrl', { unique: false });
             store.createIndex('pubDate', 'pubDate', { unique: false });
+            store.createIndex('bookmarked', 'bookmarked', { unique: false });
           }
         };
       });
@@ -635,7 +646,7 @@
                 hasNewArticles = true;
                 newArticles.push(newArticle);
               }
-              store.put({ ...newArticle, read: existing ? existing.read : false });
+              store.put({ ...newArticle, read: existing ? existing.read : false, bookmarked: existing ? existing.bookmarked : false });
             });
           }
         };
@@ -653,6 +664,17 @@
       store.get(guid).onsuccess = e => {
         const article = e.target.result;
         if (article) { article.read = read; store.put(article).onsuccess = () => resolve(article.read); }
+      };
+    });
+
+    const setArticleBookmarkStatus = (guid, bookmarked) => new Promise((resolve) => {
+      const store = db.transaction([ARTICLE_STORE], 'readwrite').objectStore(ARTICLE_STORE);
+      store.get(guid).onsuccess = e => {
+        const article = e.target.result;
+        if (article) { 
+          article.bookmarked = bookmarked; 
+          store.put(article).onsuccess = () => resolve(article.bookmarked); 
+        }
       };
     });
 
@@ -708,27 +730,36 @@
       document.getElementById('mobile-sidebar-content').innerHTML = document.querySelector('#sidebar').innerHTML;
     }
 
-    // 댓글 개수를 빠르게 확인하는 함수 (캐시 지원)
+    // 댓글 개수를 빠르게 확인하는 함수 (개선된 캐싱)
     const commentCountCache = new Map();
+    const COMMENT_CACHE_DURATION = 30 * 60 * 1000; // 30분 캐시
+    
     async function getCommentCount(url) {
-      if (commentCountCache.has(url)) {
-        return commentCountCache.get(url);
+      const cacheKey = url;
+      const cached = commentCountCache.get(cacheKey);
+      
+      // 캐시된 데이터가 있고 아직 유효한 경우
+      if (cached && (Date.now() - cached.timestamp) < COMMENT_CACHE_DURATION) {
+        return cached.count;
       }
 
       // news.hada.io나 clien.net만 지원
       if (!url.includes('news.hada.io') && !url.includes('clien.net')) {
-        commentCountCache.set(url, 0);
+        const result = { count: 0, timestamp: Date.now() };
+        commentCountCache.set(cacheKey, result);
         return 0;
       }
 
       try {
         const comments = await fetchComments(url);
         const count = comments ? comments.length : 0;
-        commentCountCache.set(url, count);
+        const result = { count, timestamp: Date.now() };
+        commentCountCache.set(cacheKey, result);
         return count;
       } catch (error) {
         console.error('Error getting comment count:', error);
-        commentCountCache.set(url, 0);
+        const result = { count: 0, timestamp: Date.now() };
+        commentCountCache.set(cacheKey, result);
         return 0;
       }
     }
@@ -741,24 +772,22 @@
       // Update tab counts
       const unreadCount = allArticles.filter(a => !a.read).length;
       const readCount = allArticles.filter(a => a.read).length;
+      const bookmarkedCount = allArticles.filter(a => a.bookmarked).length;
       document.querySelector('sl-tab[panel="unread"]').innerHTML = `읽지 않음 <sl-badge pill>${unreadCount}</sl-badge>`;
       document.querySelector('sl-tab[panel="read"]').innerHTML = `읽음 <sl-badge pill>${readCount}</sl-badge>`;
+      document.querySelector('sl-tab[panel="bookmarked"]').innerHTML = `북마크 <sl-badge pill>${bookmarkedCount}</sl-badge>`;
       document.querySelector('sl-tab[panel="all"]').innerHTML = `모두 <sl-badge pill>${allArticles.length}</sl-badge>`;
 
       if (articleFilter === 'unread') currentVisibleArticles = allArticles.filter(a => !a.read);
       else if (articleFilter === 'read') currentVisibleArticles = allArticles.filter(a => a.read);
+      else if (articleFilter === 'bookmarked') currentVisibleArticles = allArticles.filter(a => a.bookmarked);
       else currentVisibleArticles = allArticles;
 
       articleListEl.innerHTML = '';
       emptyStateEl.classList.toggle('hidden', currentVisibleArticles.length > 0);
       document.getElementById('mark-all-read-btn').style.display = (articleFilter !== 'read' && currentVisibleArticles.length > 0) ? 'block' : 'none';
 
-      // 댓글 개수를 병렬로 가져오기 (성능 향상)
-      const commentPromises = currentVisibleArticles.map(article =>
-        getCommentCount(article.link)
-      );
-      const commentCounts = await Promise.all(commentPromises);
-
+      // 기본 아이템 렌더링 먼저 (댓글 없이)
       currentVisibleArticles.forEach((article, index) => {
         const feed = feedsMap.get(article.feedUrl);
         const faviconUrl = feed ? feed.faviconUrl : '';
@@ -768,8 +797,6 @@
         articleEl.dataset.guid = article.guid;
         articleEl.setAttribute('tabindex', '0'); // Make focusable
         const pubDate = new Date(article.pubDate).toLocaleString('ko-KR');
-        const commentCount = commentCounts[index];
-        const commentBadge = commentCount > 0 ? `<sl-badge variant="neutral" pill class="ml-2">💬 ${commentCount}</sl-badge>` : '';
 
         articleEl.innerHTML = `
                     <div class="flex items-start space-x-4">
@@ -777,14 +804,50 @@
                         <div class="flex-1">
                             <div class="flex items-center">
                                 <h3 class="text-lg font-bold text-blue-800 dark:text-blue-400 group-hover:underline flex-1">${article.title}</h3>
-                                ${commentBadge}
+                                <div class="comment-badge-container" data-url="${article.link}"></div>
                             </div>
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">${article.author || '저자 없음'} &middot; ${pubDate}</p>
                         </div>
-                        <sl-button variant="${article.read ? 'default' : 'primary'}" size="small" pill class="toggle-read-btn">${article.read ? '안 읽음' : '읽음'}</sl-button>
+                        <div class="flex items-center space-x-2">
+                            <sl-icon-button name="${article.bookmarked ? 'star-fill' : 'star'}" label="북마크" class="bookmark-btn text-xl ${article.bookmarked ? 'text-yellow-500' : 'text-gray-400'}" data-guid="${article.guid}"></sl-icon-button>
+                            <sl-button variant="${article.read ? 'default' : 'primary'}" size="small" pill class="toggle-read-btn">${article.read ? '안 읽음' : '읽음'}</sl-button>
+                        </div>
                     </div>`;
         articleListEl.appendChild(articleEl);
       });
+      
+      // 댓글 개수를 비동기로 로딩 (성능 향상)
+      loadCommentsAsync(currentVisibleArticles);
+    }
+    
+    // 비동기 댓글 로딩 함수 (성능 개선)
+    async function loadCommentsAsync(articles) {
+      // 댓글이 있는 사이트만 필터링
+      const articlesWithComments = articles.filter(article => 
+        article.link.includes('news.hada.io') || article.link.includes('clien.net')
+      );
+      
+      // 5개씩 배치로 처리로 서버 부하 감소
+      for (let i = 0; i < articlesWithComments.length; i += 5) {
+        const batch = articlesWithComments.slice(i, i + 5);
+        const promises = batch.map(async article => {
+          try {
+            const count = await getCommentCount(article.link);
+            const container = document.querySelector(`[data-url="${CSS.escape(article.link)}"]`);
+            if (container && count > 0) {
+              container.innerHTML = `<sl-badge variant="neutral" pill class="ml-2">💬 ${count}</sl-badge>`;
+            }
+          } catch (error) {
+            console.error(`Error loading comment for ${article.link}:`, error);
+          }
+        });
+        
+        await Promise.all(promises);
+        // 각 배치 사이에 짧은 지연 (브라우저 블록 방지)
+        if (i + 5 < articlesWithComments.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
     }
 
     // Feed parsing and syncing functions
@@ -818,6 +881,7 @@
 
           return { guid, title, link, author, pubDate: new Date(pubDate).toISOString(), content, feedUrl };
         });
+
 
         let faviconUrl = '';
         try {
@@ -1575,15 +1639,76 @@
       }
     });
 
+    // 북마크 버튼 클릭 전용 이벤트 위임 핸들러
     articleListEl.addEventListener('click', async (e) => {
+      const bookmarkBtn = e.target.closest('.bookmark-btn');
+      if (bookmarkBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const guid = bookmarkBtn.dataset.guid;
+        const article = await getArticleByGuid(guid);
+        const nextState = !article.bookmarked;
+        await setArticleBookmarkStatus(guid, nextState);
+        
+        // 개별 아이템만 업데이트 (성능 향상)
+        const articleItem = bookmarkBtn.closest('.article-item');
+        bookmarkBtn.name = nextState ? 'star-fill' : 'star';
+        bookmarkBtn.className = `bookmark-btn text-xl ${nextState ? 'text-yellow-500' : 'text-gray-400'}`;
+        
+        // 북마크 탭의 카운트만 업데이트
+        const allArticles = await getArticles(currentFilter);
+        const bookmarkedCount = allArticles.filter(a => a.bookmarked).length;
+        document.querySelector('sl-tab[panel="bookmarked"]').innerHTML = `북마크 <sl-badge pill>${bookmarkedCount}</sl-badge>`;
+        
+        // 현재 필터가 북마크 필터이고 북마크가 해제된 경우에만 해당 아이템 제거
+        if (articleFilter === 'bookmarked' && !nextState) {
+          articleItem.style.transition = 'opacity 0.3s ease';
+          articleItem.style.opacity = '0';
+          setTimeout(() => {
+            articleItem.remove();
+            // 빈 상태 체크
+            const remainingItems = articleListEl.querySelectorAll('.article-item');
+            emptyStateEl.classList.toggle('hidden', remainingItems.length > 0);
+          }, 300);
+        }
+        return;
+      }
+      
       const articleItem = e.target.closest('.article-item');
       if (!articleItem) return;
       const guid = articleItem.dataset.guid;
+      
       if (e.target.closest('.toggle-read-btn')) {
         e.stopPropagation();
         const article = await getArticleByGuid(guid);
-        await setArticleReadStatus(guid, !article.read);
-        await renderArticles(currentFilter);
+        const newReadStatus = !article.read;
+        await setArticleReadStatus(guid, newReadStatus);
+        
+        // 개별 아이템 UI 업데이트
+        const toggleBtn = e.target.closest('.toggle-read-btn');
+        const articleItem = e.target.closest('.article-item');
+        
+        toggleBtn.variant = newReadStatus ? 'default' : 'primary';
+        toggleBtn.textContent = newReadStatus ? '안 읽음' : '읽음';
+        articleItem.classList.toggle('read', newReadStatus);
+        
+        // 탭 카운트 업데이트
+        const allArticles = await getArticles(currentFilter);
+        const unreadCount = allArticles.filter(a => !a.read).length;
+        const readCount = allArticles.filter(a => a.read).length;
+        document.querySelector('sl-tab[panel="unread"]').innerHTML = `읽지 않음 <sl-badge pill>${unreadCount}</sl-badge>`;
+        document.querySelector('sl-tab[panel="read"]').innerHTML = `읽음 <sl-badge pill>${readCount}</sl-badge>`;
+        
+        // 현재 필터에 따른 아이템 제거 처리
+        if ((articleFilter === 'unread' && newReadStatus) || (articleFilter === 'read' && !newReadStatus)) {
+          articleItem.style.transition = 'opacity 0.3s ease';
+          articleItem.style.opacity = '0';
+          setTimeout(() => {
+            articleItem.remove();
+            const remainingItems = articleListEl.querySelectorAll('.article-item');
+            emptyStateEl.classList.toggle('hidden', remainingItems.length > 0);
+          }, 300);
+        }
       } else {
         showDetailView(guid);
       }
@@ -1677,6 +1802,7 @@
     document.getElementById('detail-prev-btn').addEventListener('click', (e) => {
       if (!e.currentTarget.disabled) updateDetailView(e.currentTarget.dataset.guid);
     });
+
     document.getElementById('detail-next-btn').addEventListener('click', (e) => {
       if (!e.currentTarget.disabled) updateDetailView(e.currentTarget.dataset.guid);
     });
