@@ -3,6 +3,13 @@
 [Feedic](https://github.com/jade-kim/gemini-feedic)의 모든 주목할만한 변경 사항이 이 파일에 기록됩니다.
 
 이 프로젝트는 [Semantic Versioning](https://semver.org/)을 따르며 [Conventional Commits](https://conventionalcommits.org/)를 사용합니다.
+### [1.1.1](https://github.com/jade-kim/gemini-feedic/compare/v1.1.0...v1.1.1) (2025-09-08)
+
+
+### 🐞 버그 수정
+
+* **release:** update husky hooks to v9+ format ([6e60a48](https://github.com/jade-kim/gemini-feedic/commit/6e60a4867f7c93c87fd3e8f5f414ff02843da0b7))
+
 ## 1.1.0 (2025-09-08)
 
 
