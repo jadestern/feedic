@@ -472,6 +472,41 @@
       overflow-wrap: normal;
       white-space: pre-wrap;
     }
+
+    /* Search result card styles */
+    .search-result-card {
+      transition: all 0.2s ease;
+    }
+    
+    .search-result-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .dark .search-result-card:hover {
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    }
+    
+    .search-highlight {
+      background-color: #fef3c7;
+      color: #92400e;
+      padding: 0.125rem 0.25rem;
+      border-radius: 0.25rem;
+      font-weight: 500;
+    }
+    
+    .dark .search-highlight {
+      background-color: #374151;
+      color: #fbbf24;
+    }
+    
+    .content-preview {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.5;
+    }
   </style>
 </head>
 
@@ -514,6 +549,7 @@
               <sl-icon-button id="help-btn" name="question-circle" label="Help" class="text-xl"></sl-icon-button>
             </div>
             <div class="flex items-center space-x-2">
+              <sl-icon-button id="search-btn" name="search" label="검색" class="text-xl"></sl-icon-button>
               <sl-dropdown>
                 <sl-icon-button name="sun" label="Theme" class="text-xl" slot="trigger"></sl-icon-button>
                 <sl-menu id="theme-menu">
@@ -567,6 +603,53 @@
         <h1 id="detail-title" class="text-3xl md:text-4xl font-bold mb-2 text-gray-900 dark:text-gray-100"></h1>
         <p id="detail-author" class="text-gray-500 dark:text-gray-400 mb-8"></p>
         <div id="detail-content" class="prose dark:prose-invert lg:prose-xl max-w-none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search View -->
+  <div id="search-container" class="hidden fixed inset-0 bg-gray-50 dark:bg-gray-900 z-40 flex flex-col">
+    <header class="p-4 border-b bg-white dark:bg-gray-800 dark:border-gray-700 sticky top-0">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center space-x-3">
+          <sl-icon-button id="search-back-btn" name="arrow-left" label="Back" class="text-2xl"></sl-icon-button>
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">검색</h2>
+        </div>
+        <div class="flex items-center space-x-2">
+          <sl-dropdown>
+            <sl-icon-button name="sun" label="Theme" class="text-xl" slot="trigger"></sl-icon-button>
+            <sl-menu id="search-theme-menu">
+              <sl-menu-item value="light">Light <sl-icon name="check" slot="suffix"></sl-icon></sl-menu-item>
+              <sl-menu-item value="dark">Dark <sl-icon name="check" slot="suffix"></sl-icon></sl-menu-item>
+              <sl-menu-item value="system">System <sl-icon name="check" slot="suffix"></sl-icon></sl-menu-item>
+            </sl-menu>
+          </sl-dropdown>
+        </div>
+      </div>
+      <div class="max-w-2xl mx-auto">
+        <sl-input 
+          id="search-input" 
+          placeholder="기사 제목, 내용 검색..." 
+          clearable
+          size="large"
+          class="w-full"
+        >
+          <sl-icon name="search" slot="prefix"></sl-icon>
+        </sl-input>
+      </div>
+    </header>
+    <div class="flex-1 overflow-y-auto">
+      <div class="max-w-4xl mx-auto p-6">
+        <div id="search-stats" class="text-sm text-gray-500 dark:text-gray-400 mb-4 hidden">
+          "<span id="search-term"></span>" 검색 결과: <span id="search-count">0</span>개
+        </div>
+        <div id="search-results" class="space-y-4">
+          <div id="search-empty-state" class="text-center py-20 text-gray-500 dark:text-gray-400">
+            <sl-icon name="search" class="text-6xl mb-4 opacity-50"></sl-icon>
+            <p class="text-lg">내 기사에서 검색해보세요</p>
+            <p class="text-sm mt-2">제목과 내용에서 검색합니다</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1861,8 +1944,124 @@
       }
     });
 
+    // Search Logic
+    let currentSearchTerm = '';
+    let searchTimeout;
+
+    function escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function highlight(text, term) {
+      if (!term) return text;
+      const pattern = new RegExp(`(${escapeRegExp(term)})`, 'gi');
+      return text.replace(pattern, '<span class="search-highlight">$1</span>');
+    }
+
+    async function openSearch() {
+      document.getElementById('main-container').classList.add('hidden');
+      document.getElementById('article-detail-container').classList.add('hidden');
+      document.getElementById('search-container').classList.remove('hidden');
+      document.getElementById('search-input').focus();
+    }
+
+    function closeSearch() {
+      document.getElementById('search-container').classList.add('hidden');
+      document.getElementById('main-container').classList.remove('hidden');
+      document.getElementById('search-input').value = '';
+      currentSearchTerm = '';
+      document.getElementById('search-results').innerHTML = '';
+      document.getElementById('search-stats').classList.add('hidden');
+      document.getElementById('search-empty-state').classList.remove('hidden');
+    }
+
+    async function performSearch(term) {
+      const searchResultsEl = document.getElementById('search-results');
+      const statsEl = document.getElementById('search-stats');
+      const countEl = document.getElementById('search-count');
+      const termEl = document.getElementById('search-term');
+      const emptyEl = document.getElementById('search-empty-state');
+
+      if (!term || term.trim().length === 0) {
+        searchResultsEl.innerHTML = '';
+        statsEl.classList.add('hidden');
+        emptyEl.classList.remove('hidden');
+        return;
+      }
+
+      const allArticles = await getArticles(currentFilter);
+      const lower = term.toLowerCase();
+      const results = allArticles.filter(a => {
+        const title = a.title || '';
+        const contentText = (a.content || '').replace(/<[^>]+>/g, ' ');
+        return title.toLowerCase().includes(lower) || contentText.toLowerCase().includes(lower);
+      });
+
+      // Render results
+      searchResultsEl.innerHTML = results.map(a => {
+        const pubDate = new Date(a.pubDate).toLocaleString('ko-KR');
+        const contentText = (a.content || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+        // Find a small excerpt around the first match
+        const idx = contentText.toLowerCase().indexOf(lower);
+        let excerpt = contentText.slice(0, 240);
+        if (idx > 60) {
+          const start = Math.max(0, idx - 80);
+          excerpt = (start > 0 ? '… ' : '') + contentText.slice(start, start + 240);
+        }
+
+        return `
+          <div class="search-result-card bg-white dark:bg-gray-800 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700 cursor-pointer" data-guid="${a.guid}">
+            <div class="flex items-start space-x-3">
+              <div class="flex-1">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">${highlight(a.title, term)}</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">${pubDate}</p>
+                <p class="text-sm text-gray-700 dark:text-gray-300 mt-2 content-preview">${highlight(excerpt, term)}</p>
+              </div>
+              <sl-icon-button name="arrow-right" label="상세 보기" class="text-lg"></sl-icon-button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      countEl.textContent = results.length;
+      termEl.textContent = term;
+      statsEl.classList.remove('hidden');
+      emptyEl.classList.toggle('hidden', results.length > 0);
+    }
+
+    document.getElementById('search-btn').addEventListener('click', openSearch);
+    document.getElementById('search-back-btn').addEventListener('click', closeSearch);
+    document.getElementById('search-input').addEventListener('sl-input', (e) => {
+      clearTimeout(searchTimeout);
+      const value = e.target.value;
+      searchTimeout = setTimeout(() => {
+        currentSearchTerm = value;
+        performSearch(currentSearchTerm);
+      }, 250);
+    });
+
+    // 검색 결과 클릭 시 상세 보기 이동
+    document.getElementById('search-results').addEventListener('click', (e) => {
+      const card = e.target.closest('.search-result-card');
+      if (!card) return;
+      const guid = card.dataset.guid;
+      closeSearch();
+      showDetailView(guid);
+    });
+
+    // ESC로 검색 닫기
+    document.addEventListener('keydown', (e) => {
+      const searchOpen = !document.getElementById('search-container').classList.contains('hidden');
+      if (searchOpen && e.key === 'Escape') {
+        e.preventDefault();
+        closeSearch();
+      }
+    });
+
     // Theme Logic
     const themeMenu = document.getElementById('theme-menu');
+    const searchThemeMenu = document.getElementById('search-theme-menu');
     const themeToggleButton = document.querySelector('sl-dropdown sl-icon-button');
     const html = document.documentElement;
 
@@ -1873,17 +2072,26 @@
       html.classList.toggle('sl-theme-dark', isDark);
       themeToggleButton.name = isDark ? 'moon-stars' : 'sun';
 
-      themeMenu.querySelectorAll('sl-menu-item').forEach(item => {
-        const checkIcon = item.querySelector('sl-icon[slot="suffix"]');
-        checkIcon.style.visibility = item.value === theme ? 'visible' : 'hidden';
+      // Update both main and search theme menus
+      [themeMenu, searchThemeMenu].forEach(menu => {
+        if (menu) {
+          menu.querySelectorAll('sl-menu-item').forEach(item => {
+            const checkIcon = item.querySelector('sl-icon[slot="suffix"]');
+            checkIcon.style.visibility = item.value === theme ? 'visible' : 'hidden';
+          });
+        }
       });
     }
 
-    themeMenu.addEventListener('sl-select', event => {
+    // Handle theme selection from both menus
+    function handleThemeSelect(event) {
       const theme = event.detail.item.value;
       localStorage.setItem('rss-theme', theme);
       applyTheme(theme);
-    });
+    }
+
+    themeMenu.addEventListener('sl-select', handleThemeSelect);
+    searchThemeMenu.addEventListener('sl-select', handleThemeSelect);
 
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
       const currentTheme = localStorage.getItem('rss-theme') || 'system';
