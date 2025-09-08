@@ -89,3 +89,60 @@ No automated tests are present. Test manually by:
 2. Testing article reading and marking functionality
 3. Verifying keyboard navigation
 4. Testing responsive behavior on different screen sizes
+
+## Known Issues and Fixes
+
+### CSS Text Wrapping Bug (Fixed)
+
+**Issue Symptoms:**
+- Long article titles, URLs, or comment text would overflow containers on narrow screens
+- Horizontal scrolling appeared on mobile devices
+- Text would break layout boundaries, especially in sidebar feed names and article titles
+
+**Root Cause:**
+The application lacked proper CSS `word-break` and `overflow-wrap` properties to handle long, unbreakable text strings (like URLs or very long words).
+
+**Fix Applied:**
+```css
+/* Global text wrapping safety net */
+body {
+  word-break: break-word;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Specific element fixes */
+#detail-content,
+#detail-content p,
+.article-item h3,
+.comment-content,
+#feed-list sl-menu-item span,
+#current-feed-title {
+  word-break: break-word;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Preserve code block formatting */
+#detail-content pre,
+#detail-content code,
+.comment-content pre,
+.comment-content code {
+  word-break: normal;
+  word-wrap: normal;
+  overflow-wrap: normal;
+  white-space: pre-wrap;
+}
+```
+
+**Testing Steps:**
+1. Test on mobile viewports (320px, 375px, 768px)
+2. Add RSS feeds with very long titles or URLs
+3. Verify no horizontal scrolling occurs
+4. Confirm code blocks maintain proper formatting
+5. Check that text remains readable across different screen sizes
+
+**Browser Compatibility:**
+- `word-break: break-word` - Modern browsers
+- `word-wrap: break-word` - Legacy fallback
+- `overflow-wrap: anywhere` - Latest CSS specification

@@ -45,6 +45,9 @@
     body {
       font-family: 'Inter', sans-serif;
       --sl-font-sans: 'Inter', sans-serif;
+      word-break: break-word;
+      word-wrap: break-word;
+      overflow-wrap: anywhere;
     }
 
     .feed-item.active {
@@ -436,6 +439,29 @@
     .comment-content p {
       margin-bottom: 0.75em;
       line-height: 1.6;
+    }
+
+    /* Text wrapping fixes for long content */
+    #detail-content,
+    #detail-content p,
+    .article-item h3,
+    .comment-content,
+    #feed-list sl-menu-item span,
+    #current-feed-title {
+      word-break: break-word;
+      word-wrap: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    /* Preserve code block formatting */
+    #detail-content pre,
+    #detail-content code,
+    .comment-content pre,
+    .comment-content code {
+      word-break: normal;
+      word-wrap: normal;
+      overflow-wrap: normal;
+      white-space: pre-wrap;
     }
   </style>
 </head>
