@@ -627,15 +627,20 @@
         </div>
       </div>
       <div class="max-w-2xl mx-auto">
-        <sl-input 
-          id="search-input" 
-          placeholder="기사 제목, 내용 검색..." 
-          clearable
-          size="large"
-          class="w-full"
-        >
-          <sl-icon name="search" slot="prefix"></sl-icon>
-        </sl-input>
+        <div class="flex gap-2">
+          <sl-input 
+            id="search-input" 
+            placeholder="기사 제목, 내용 검색..." 
+            clearable
+            size="large"
+            class="flex-1"
+          >
+            <sl-icon name="search" slot="prefix"></sl-icon>
+          </sl-input>
+          <sl-button id="perform-search-btn" variant="primary" size="large">
+            검색
+          </sl-button>
+        </div>
       </div>
     </header>
     <div class="flex-1 overflow-y-auto">
@@ -1188,11 +1193,7 @@
           let comments = [];
 
           // clien.net의 댓글 구조 파싱 - 실제 구조 기반
-          console.log('Clien.net comment parsing - using actual structure');
-
-          // 댓글 컨테이너 찾기
           const commentContainer = doc.querySelector('.comment.ad_banner[data-role="comment"]');
-          console.log('Comment container found:', !!commentContainer);
 
           if (!commentContainer) {
             // 다른 댓글 컨테이너 selector 시도
@@ -1200,8 +1201,6 @@
             for (const selector of alternativeSelectors) {
               const altContainer = doc.querySelector(selector);
               if (altContainer) {
-                console.log(`Found alternative comment container with selector: ${selector}`);
-                console.log('Container HTML preview:', altContainer.innerHTML.substring(0, 200) + '...');
                 break;
               }
             }
@@ -1210,17 +1209,6 @@
           if (commentContainer) {
             // comment_row 요소들 찾기
             const commentRows = commentContainer.querySelectorAll('.comment_row[data-role="comment-row"]');
-            console.log(`Found ${commentRows.length} comment rows`);
-
-            // 댓글 컨테이너 내용 디버깅
-            if (commentRows.length === 0) {
-              console.log('Comment container HTML:', commentContainer.innerHTML.substring(0, 500) + '...');
-              console.log('All children in comment container:', commentContainer.children.length);
-              const allRows = commentContainer.querySelectorAll('.comment_row');
-              console.log(`Found ${allRows.length} rows without data-role filter`);
-              const allCommentDivs = commentContainer.querySelectorAll('div[class*="comment"]');
-              console.log(`Found ${allCommentDivs.length} divs with comment in class`);
-            }
 
             commentRows.forEach((row, index) => {
               try {
@@ -1229,7 +1217,7 @@
                 const commentSn = row.getAttribute('data-comment-sn');
                 const isReply = row.classList.contains('re');
 
-                console.log(`Processing comment row ${index + 1}: author=${authorId}, sn=${commentSn}, isReply=${isReply}`);
+                // 데이터 속성 파싱 완료
 
                 // 닉네임 추출
                 const nicknameEl = row.querySelector('.nickname');
@@ -1287,9 +1275,7 @@
                     depth: isReply ? 1 : 0,
                     authorId: authorId
                   });
-                  console.log(`Added ${isReply ? 'reply' : 'comment'} ${index + 1}: ${author} - ${content.substring(0, 30)}...`);
-                } else {
-                  console.log(`Skipped row ${index + 1} - no valid content`);
+                  // 댓글 추가 완료
                 }
               } catch (error) {
                 console.error(`Error parsing comment row ${index}:`, error);
@@ -1297,12 +1283,8 @@
             });
           }
 
-          console.log(`Structure-based parsing found ${comments.length} comments`);
-
           // 구조 기반으로 찾지 못한 경우 텍스트 기반 파싱 사용 (개선됨)
           if (comments.length === 0) {
-            console.log('Fallback to text-based parsing');
-            console.log('Document body length:', doc.body.textContent.length);
 
             // 다양한 댓글 섹션 selector 시도
             const commentSectionSelectors = ['#comment-head', '#comments', '.comments', '[id*="comment"]'];
@@ -1311,7 +1293,6 @@
             for (const selector of commentSectionSelectors) {
               commentSection = doc.querySelector(selector);
               if (commentSection) {
-                console.log(`Found comment section with selector: ${selector}`);
                 break;
               }
             }
@@ -1320,15 +1301,9 @@
             const textContent = commentSection ? commentSection.textContent : doc.body.textContent;
             const lines = textContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
-            console.log(`Processing ${lines.length} text lines for comments`);
-
             // 댓글 ID 패턴이 있는지 먼저 확인
             const allText = textContent;
             const commentIdMatches = allText.match(/#\d{9,}/g);
-            console.log(`Found ${commentIdMatches ? commentIdMatches.length : 0} comment ID patterns in text:`, commentIdMatches ? commentIdMatches.slice(0, 5) : 'none');
-
-            // 텍스트 샘플 로그 (처음 10줄)
-            console.log('First 10 lines of text:', lines.slice(0, 10));
 
             // 댓글 ID 패턴으로 모든 댓글 찾기 (대댓글 포함)
             let currentComment = null;
@@ -1341,7 +1316,6 @@
               // 댓글 ID 패턴 (#숫자 - 8자리 이상) 또는 대댓글 패턴
               const commentIdMatch = line.match(/^#\d{9,}$/) || line.match(/^Re:\s*#\d{9,}$/);
               if (commentIdMatch) {
-                console.log(`Found comment ID pattern: ${line}`);
                 if (currentComment && currentComment.content && currentComment.content.length > 5) {
                   comments.push(currentComment);
                   commentCount++;
@@ -1356,7 +1330,6 @@
                   depth: isReply ? 1 : 0
                 };
                 collectingContent = false;
-                console.log(`Found ${isReply ? 'reply' : 'comment'} ID: ${line}`);
               }
               // 닉네임 패턴 (한글, 영문, 숫자, 특수문자 조합)
               else if (currentComment && !currentComment.authorSet && line.match(/^[가-힣a-zA-Z0-9_\-\[\]()]+$/)) {
@@ -1364,7 +1337,6 @@
                 if (!line.startsWith('IP') && !line.match(/\d{2}-\d{2}-\d{2}/) && line.length <= 20) {
                   currentComment.author = line;
                   currentComment.authorSet = true;
-                  console.log(`Found author: ${line}`);
                 }
               }
               // IP 주소 패턴
@@ -1409,11 +1381,9 @@
                   if (!currentComment.content) {
                     currentComment.content = line;
                     collectingContent = true;
-                    console.log(`Found content start: ${line.substring(0, 50)}...`);
                   } else if (collectingContent) {
                     // 긴 댓글의 연속된 줄 추가
                     currentComment.content += '\n' + line;
-                    console.log(`Added content line: ${line.substring(0, 30)}...`);
                   }
                 }
               }
@@ -1425,40 +1395,12 @@
               commentCount++;
             }
 
-            console.log(`Text-based parsing found ${commentCount} comments`);
+            // 텍스트 기반 파싱 완료
 
-            // 마지막으로 전체 HTML에서 댓글 패턴 직접 검색
-            if (comments.length === 0) {
-              console.log('Final attempt: searching entire HTML for comment patterns');
-              const fullHtml = html;
-
-              // 다양한 댓글 패턴 검색
-              const patterns = [
-                /#\d{9,}/g,  // 댓글 ID
-                /data-comment-sn="(\d+)"/g,  // 댓글 시리얼 넘버
-                /data-author-id="([^"]+)"/g,  // 작성자 ID
-              ];
-
-              patterns.forEach((pattern, index) => {
-                const matches = fullHtml.match(pattern);
-                console.log(`Pattern ${index + 1} matches:`, matches ? matches.length : 0, matches ? matches.slice(0, 3) : 'none');
-              });
-
-              // 댓글 관련 텍스트 직접 추출 시도
-              const commentRegex = /IP\s+\d+\.\♡\.\d+\.\d+[\s\S]*?(?=#\d+|$)/g;
-              const directMatches = fullHtml.match(commentRegex);
-              if (directMatches && directMatches.length > 0) {
-                console.log(`Found ${directMatches.length} direct comment patterns`);
-                directMatches.forEach((match, index) => {
-                  if (index < 3) {  // 처음 3개만 로그
-                    console.log(`Direct match ${index + 1}:`, match.substring(0, 100) + '...');
-                  }
-                });
-              }
-            }
+            // HTML에서 댓글 패턴 검색 완료
           }
 
-          console.log(`Final result: ${comments.length} comments found`);
+          // 댓글 파싱 완료
 
           return comments.map((comment, index) => ({
             id: comment.id || index + 1,
@@ -1501,9 +1443,7 @@
         }
 
         // 댓글 가져오기 및 표시
-        console.log(`Fetching comments for URL: ${url}`);
         const comments = await fetchComments(url);
-        console.log(`Fetched ${comments.length} comments:`, comments);
         if (comments.length > 0) {
           const commentsHtml = `
             <div id="comments-section" class="mt-12 pt-8 border-t dark:border-gray-700">
@@ -1525,10 +1465,9 @@
               </div>
             </div>
           `;
-          console.log(`Adding comments HTML to detail content`);
+          // 댓글 HTML 추가
           detailContentEl.innerHTML += commentsHtml;
         } else {
-          console.log(`No comments found for URL: ${url}`);
           // 댓글이 없는 경우에도 사용자에게 알림 표시
           if (url.includes('clien.net') || url.includes('news.hada.io')) {
             const noCommentsHtml = `
@@ -1821,16 +1760,18 @@
       ];
 
       const handleKey = (e) => {
-        // 입력 필드에서 키 입력 시 무시
-        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+        // 입력 필드에서 키 입력 시 무시 (sl-input 인지도 확인)
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.closest('sl-input'))) {
           return;
         }
 
         const helpModal = document.getElementById('help-modal');
         const detailContainer = document.getElementById('article-detail-container');
+        const searchContainer = document.getElementById('search-container');
         const isDetailViewVisible = detailContainer && !detailContainer.classList.contains('hidden');
+        const isSearchViewVisible = searchContainer && !searchContainer.classList.contains('hidden');
 
-        console.log('Key pressed:', e.key, 'Detail view visible:', isDetailViewVisible); // 디버깅
+        // 키보드 이벤트 처리
 
         if (e.key === 'Backspace') {
           e.preventDefault();
@@ -2032,13 +1973,21 @@
 
     document.getElementById('search-btn').addEventListener('click', openSearch);
     document.getElementById('search-back-btn').addEventListener('click', closeSearch);
-    document.getElementById('search-input').addEventListener('sl-input', (e) => {
-      clearTimeout(searchTimeout);
-      const value = e.target.value;
-      searchTimeout = setTimeout(() => {
+    // 버튼 클릭으로 검색 실행
+    document.getElementById('perform-search-btn').addEventListener('click', () => {
+      const value = document.getElementById('search-input').value;
+      currentSearchTerm = value;
+      performSearch(currentSearchTerm);
+    });
+
+    // Enter 키로도 검색 실행
+    document.getElementById('search-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const value = e.target.value;
         currentSearchTerm = value;
         performSearch(currentSearchTerm);
-      }, 250);
+      }
     });
 
     // 검색 결과 클릭 시 상세 보기 이동
