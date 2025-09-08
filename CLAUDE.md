@@ -113,7 +113,7 @@ No automated tests are present. Test manually by:
 - ✅ 필터별 아이템 제거 애니메이션
 
 ### 🔍 Search Functionality (DONE)
-**Status:** 전용 검색 페이지 구현 완룼 🎉  
+**Status:** 전용 검색 페이지 구현 완료🎉  
 **Completed Features:**
 - ✅ 전체 화면 전용 검색 페이지 (line 610-655)
 - ✅ 검색 버튼 + Enter 키 검색
@@ -124,29 +124,29 @@ No automated tests are present. Test manually by:
 - ✅ 검색 결과 클릭으로 상세 보기 이동
 - ✅ 테마 동기화 및 반응형 디자인
 
+### 🧹 Automatic Article Cleanup (DONE)
+**Status:** 자동 정리 기능 구현 완료 🎉  
+**Completed Features:**
+- ✅ 7일 이상 된 기사 자동 삭제
+- ✅ 북마크된 기사는 영구 보존
+- ✅ 앱 시작 시 자동 정리
+- ✅ 피드 새로고침 후 자동 정리
+- ✅ 정리 결과 사용자 알림
+- ✅ 설정 가능한 정리 기간
+
+### 🕰️ Relative Time Display (DONE)
+**Status:** 상대적 시간 표시 기능 구현 완료 🎉  
+**Completed Features:**
+- ✅ date-fns 라이브러리 통합 (한국어 로케일)
+- ✅ "3일 전", "1주 전" 등 상대적 시간 표시
+- ✅ 기사 카드, 검색 결과, 상세 보기에 적용
+- ✅ 마우스 호버시 정확한 날짜/시간 툴팁
+- ✅ 1분마다 실시간 자동 업데이트
+- ✅ date-fns 실패 시 폴백 시스템
+- ✅ 시각적 인디케이터 (점선 밑줄, 커서 변경)
+
 ---
 
-### ⚡ Quick Fixes - Next Up
-**Status:** 구현 준비 완료  
-**Estimated Time:** 2-3 hours  
-**Next Steps:**
-1. 헤더에 search input 추가
-2. 실시간 검색 필터 함수 구현 (debounce 적용)
-3. 검색어 하이라이트 기능 (선택사항)
-4. 검색 상태 UI 피드백
-
-**Implementation Ready:**
-```javascript
-// 검색 디바운스 함수
-let searchTimeout;
-function handleSearch(searchTerm) {
-  clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(() => {
-    currentSearchTerm = searchTerm;
-    renderArticles();
-  }, 300);
-}
-```
 
 ### 📋 Medium Priority - Quick Fixes
 
@@ -165,10 +165,15 @@ function handleSearch(searchTerm) {
 
 ### 🔮 Future Considerations
 
-#### 5. Automatic Article Cleanup
-**Status:** 데이터베이스 크기 모니터링 후 결정  
-**Trigger:** 1000개 이상 articles 축적 시 구현 검토
-**Note:** 북마크 기능 구현 후 진행 (북마크된 글 보존 필요)
+#### ✅ 5. Automatic Article Cleanup (COMPLETED)
+**Status:** 구현 완료 🎉  
+**Implementation:** 7일 이상 된 기사 중 북마크되지 않은 기사만 자동 삭제  
+**Features:**
+- ✅ 앱 시작 시 자동 정리 실행
+- ✅ 피드 새로고침 후 자동 정리 실행  
+- ✅ 북마크된 기사는 영구 보존
+- ✅ 삭제된 기사 개수 사용자 알림
+- ✅ 7일 기준 (customizable)
 
 ---
 
@@ -198,5 +203,15 @@ Day 5: 문서 정리 + 다음 단계 계획
 - [x] 검색 버튼 및 Enter 키 동작
 - [x] "모두" 탭 제거 확인
 - [x] 검색 하이라이트 및 미리보기
+- [x] 자동 정리 기능 (앱 시작 시)
+- [x] 자동 정리 기능 (피드 새로고침 후)
+- [x] 북마크된 기사는 7일 후에도 보존 확인
+- [x] 삭제 알림 메시지 표시
+- [x] 상대적 시간 표시 (기사 카드)
+- [x] 상대적 시간 표시 (검색 결과)
+- [x] 상대적 시간 표시 (상세 보기)
+- [x] 날짜 툴팁 기능 확인
+- [x] date-fns 한국어 로케일 적용
 - [ ] 검색 성능 테스트 (100+ articles)
 - [ ] 크로스 브라우저 테스트
+- [ ] 대량 기사 정리 테스트 (1000+ articles)

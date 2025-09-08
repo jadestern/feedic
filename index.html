@@ -23,6 +23,10 @@
   <!-- highlight.js for syntax highlighting -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  
+  <!-- date-fns for relative time formatting -->
+  <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/locale/ko/index.min.js"></script>
 
   <!-- Shoelace Web Components -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/themes/light.css" />
@@ -507,6 +511,17 @@
       overflow: hidden;
       line-height: 1.5;
     }
+    
+    /* Relative time styling */
+    .relative-time {
+      cursor: help;
+      border-bottom: 1px dotted currentColor;
+      transition: border-bottom-color 0.2s ease;
+    }
+    
+    .relative-time:hover {
+      border-bottom-color: transparent;
+    }
   </style>
 </head>
 
@@ -764,6 +779,71 @@
       };
     });
 
+    // Clean up old articles that are not bookmarked
+    const cleanOldArticles = (days = 7) => new Promise((resolve) => {
+      const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const tx = db.transaction([ARTICLE_STORE], 'readwrite');
+      const store = tx.objectStore(ARTICLE_STORE);
+      let deletedCount = 0;
+      
+      // Use cursor to iterate through all articles
+      store.openCursor().onsuccess = e => {
+        const cursor = e.target.result;
+        if (cursor) {
+          const article = cursor.value;
+          const articleDate = new Date(article.pubDate);
+          
+          // Delete if article is older than cutoff AND not bookmarked
+          if (articleDate < cutoffDate && !article.bookmarked) {
+            cursor.delete();
+            deletedCount++;
+          }
+          cursor.continue();
+        } else {
+          // Cursor finished, resolve with deleted count
+          resolve(deletedCount);
+        }
+      };
+      
+      tx.onerror = () => {
+        console.error('Error during cleanup transaction');
+        resolve(0);
+      };
+    });
+
+    // Format relative time using date-fns
+    function formatRelativeTime(dateString) {
+      try {
+        const date = new Date(dateString);
+        const now = new Date();
+        
+        // Use date-fns v2 formatDistanceToNow with Korean locale
+        if (typeof dateFns !== 'undefined' && dateFns.formatDistanceToNow && dateFns.ko) {
+          return dateFns.formatDistanceToNow(date, { 
+            addSuffix: true, 
+            locale: dateFns.ko 
+          });
+        } else {
+          // Fallback to manual calculation if date-fns is not available
+          const diffMs = now - date;
+          const diffMins = Math.floor(diffMs / (1000 * 60));
+          const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+          const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+          
+          if (diffMins < 1) return '방금 전';
+          if (diffMins < 60) return `${diffMins}분 전`;
+          if (diffHours < 24) return `${diffHours}시간 전`;
+          if (diffDays < 7) return `${diffDays}일 전`;
+          if (diffDays < 30) return `${Math.floor(diffDays / 7)}주 전`;
+          if (diffDays < 365) return `${Math.floor(diffDays / 30)}개월 전`;
+          return `${Math.floor(diffDays / 365)}년 전`;
+        }
+      } catch (error) {
+        console.error('Error formatting relative time:', error);
+        return new Date(dateString).toLocaleDateString('ko-KR');
+      }
+    }
+
     function updateLastUpdateTime() {
       const lastUpdateEl = document.getElementById('last-update-time');
       if (lastUpdateTime) {
@@ -786,8 +866,38 @@
       }
     }
 
-    // Update time display every minute
-    setInterval(updateLastUpdateTime, 60000);
+    // Update relative times for all articles every minute
+    function updateAllRelativeTimes() {
+      const relativeTimeElements = document.querySelectorAll('.relative-time');
+      relativeTimeElements.forEach(element => {
+        const absoluteDate = element.getAttribute('title');
+        if (absoluteDate) {
+          // Extract the ISO date from the localized string if needed
+          try {
+            // Find the associated article element to get the original pubDate
+            const articleItem = element.closest('.article-item, .search-result-card');
+            if (articleItem) {
+              const guid = articleItem.dataset.guid;
+              if (guid) {
+                // Find the article in current visible articles or search through all
+                const foundArticle = currentVisibleArticles.find(a => a.guid === guid);
+                if (foundArticle) {
+                  element.textContent = formatRelativeTime(foundArticle.pubDate);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error updating relative time:', error);
+          }
+        }
+      });
+    }
+
+    // Update time displays every minute
+    setInterval(() => {
+      updateLastUpdateTime();
+      updateAllRelativeTimes();
+    }, 60000);
 
     // UI elements
     const feedListEl = document.getElementById('feed-list'), articleListEl = document.getElementById('article-list');
@@ -879,7 +989,8 @@
         articleEl.className = `article-item group bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 cursor-pointer ${article.read ? 'read' : ''} ${newArticleClass}`;
         articleEl.dataset.guid = article.guid;
         articleEl.setAttribute('tabindex', '0'); // Make focusable
-        const pubDate = new Date(article.pubDate).toLocaleString('ko-KR');
+        const relativeTime = formatRelativeTime(article.pubDate);
+        const absoluteDate = new Date(article.pubDate).toLocaleString('ko-KR');
 
         articleEl.innerHTML = `
                     <div class="flex items-start space-x-4">
@@ -889,7 +1000,10 @@
                                 <h3 class="text-lg font-bold text-blue-800 dark:text-blue-400 group-hover:underline flex-1">${article.title}</h3>
                                 <div class="comment-badge-container" data-url="${article.link}"></div>
                             </div>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">${article.author || '저자 없음'} &middot; ${pubDate}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                ${article.author || '저자 없음'} &middot; 
+                                <span class="relative-time" title="${absoluteDate}">${relativeTime}</span>
+                            </p>
                         </div>
                         <div class="flex items-center space-x-2">
                             <sl-icon-button name="${article.bookmarked ? 'star-fill' : 'star'}" label="북마크" class="bookmark-btn text-xl ${article.bookmarked ? 'text-yellow-500' : 'text-gray-400'}" data-guid="${article.guid}"></sl-icon-button>
@@ -1020,8 +1134,17 @@
       lastUpdateTime = new Date();
       updateLastUpdateTime();
 
+      // Clean up old articles after adding new ones
+      const deletedCount = await cleanOldArticles();
+      
       if (anyNewArticles) {
-        showMessage(`새로운 기사 ${totalNewArticles}개를 가져왔습니다.`, 'success');
+        let message = `새로운 기사 ${totalNewArticles}개를 가져왔습니다.`;
+        if (deletedCount > 0) {
+          message += ` (오래된 기사 ${deletedCount}개 정리)`;
+        }
+        showMessage(message, 'success');
+      } else if (deletedCount > 0) {
+        showMessage(`오래된 기사 ${deletedCount}개를 정리했습니다. 🧹`, 'info');
       }
     }
 
@@ -1502,7 +1625,9 @@
       const article = await getArticleByGuid(guid);
       if (!article) return;
       document.getElementById('detail-title').textContent = article.title;
-      document.getElementById('detail-author').textContent = `${article.author || '저자 없음'} · ${new Date(article.pubDate).toLocaleString('ko-KR')}`;
+      const relativeTime = formatRelativeTime(article.pubDate);
+      const absoluteDate = new Date(article.pubDate).toLocaleString('ko-KR');
+      document.getElementById('detail-author').innerHTML = `${article.author || '저자 없음'} · <span class="relative-time" title="${absoluteDate}">${relativeTime}</span>`;
       document.getElementById('detail-link-btn').href = article.link;
       document.getElementById('detail-scroll-container').scrollTop = 0;
 
@@ -1940,7 +2065,8 @@
 
       // Render results
       searchResultsEl.innerHTML = results.map(a => {
-        const pubDate = new Date(a.pubDate).toLocaleString('ko-KR');
+        const relativeTime = formatRelativeTime(a.pubDate);
+        const absoluteDate = new Date(a.pubDate).toLocaleString('ko-KR');
         const contentText = (a.content || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
         // Find a small excerpt around the first match
@@ -1956,7 +2082,9 @@
             <div class="flex items-start space-x-3">
               <div class="flex-1">
                 <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">${highlight(a.title, term)}</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">${pubDate}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  <span class="relative-time" title="${absoluteDate}">${relativeTime}</span>
+                </p>
                 <p class="text-sm text-gray-700 dark:text-gray-300 mt-2 content-preview">${highlight(excerpt, term)}</p>
               </div>
               <sl-icon-button name="arrow-right" label="상세 보기" class="text-lg"></sl-icon-button>
@@ -2062,6 +2190,13 @@
         applyTheme(savedTheme);
 
         await initDB();
+        
+        // Clean up old articles (7 days old) that are not bookmarked
+        const deletedCount = await cleanOldArticles();
+        if (deletedCount > 0) {
+          console.log(`🧹 정리 완료: ${deletedCount}개의 오래된 기사를 삭제했습니다.`);
+        }
+        
         await renderFeeds();
         document.querySelector(`sl-tab[panel="${articleFilter}"]`).active = true;
 
