@@ -3,6 +3,13 @@
 [Feedic](https://github.com/jade-kim/gemini-feedic)의 모든 주목할만한 변경 사항이 이 파일에 기록됩니다.
 
 이 프로젝트는 [Semantic Versioning](https://semver.org/)을 따르며 [Conventional Commits](https://conventionalcommits.org/)를 사용합니다.
+## [1.2.0](https://github.com/jade-kim/gemini-feedic/compare/v1.1.1...v1.2.0) (2025-09-08)
+
+
+### ✨ 새로운 기능
+
+* 모바일 사이드바 UI 개선 ([b539778](https://github.com/jade-kim/gemini-feedic/commit/b539778aacabd256a0a6a50a9f3fc215c46c74d0))
+
 ### [1.1.1](https://github.com/jade-kim/gemini-feedic/compare/v1.1.0...v1.1.1) (2025-09-08)
 
 
