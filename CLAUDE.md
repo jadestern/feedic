@@ -90,236 +90,101 @@ No automated tests are present. Test manually by:
 3. Verifying keyboard navigation
 4. Testing responsive behavior on different screen sizes
 
-## Known Issues and Fixes
+## Completed Issues
 
-### CSS Text Wrapping Bug (Fixed)
+### ✅ CSS Text Wrapping Bug (Fixed)
+**Issue:** 긴 제목과 URL이 모바일 화면에서 레이아웃을 깨뜨리는 문제  
+**Fix:** CSS `word-break`, `word-wrap`, `overflow-wrap` 속성 추가로 텍스트 넘침 해결  
+**Result:** 모든 화면 크기에서 수평 스크롤 없이 텍스트 정상 표시
 
-**Issue Symptoms:**
-- Long article titles, URLs, or comment text would overflow containers on narrow screens
-- Horizontal scrolling appeared on mobile devices
-- Text would break layout boundaries, especially in sidebar feed names and article titles
+## Current Tasks & Roadmap 🎯
 
-**Root Cause:**
-The application lacked proper CSS `word-break` and `overflow-wrap` properties to handle long, unbreakable text strings (like URLs or very long words).
+## Completed Tasks ✅
 
-**Fix Applied:**
-```css
-/* Global text wrapping safety net */
-body {
-  word-break: break-word;
-  word-wrap: break-word;
-  overflow-wrap: anywhere;
-}
+### ⭐ Bookmark Functionality (DONE)
+**Status:** 완전 구현 완료 🎉  
+**Completed Features:**
+- ✅ IndexedDB `bookmarked` 필드 추가 (line 614)
+- ✅ Star 버튼 UI (line 812) 
+- ✅ "북마크" 필터 탭 (line 533)
+- ✅ `setArticleBookmarkStatus` 토글 함수 (line 670-679)
+- ✅ 이벤트 핸들러 & 필터링 로직 (line 1642-1675)
+- ✅ 북마크 카운터 표시 (line 778)
+- ✅ 필터별 아이템 제거 애니메이션
 
-/* Specific element fixes */
-#detail-content,
-#detail-content p,
-.article-item h3,
-.comment-content,
-#feed-list sl-menu-item span,
-#current-feed-title {
-  word-break: break-word;
-  word-wrap: break-word;
-  overflow-wrap: anywhere;
-}
+---
 
-/* Preserve code block formatting */
-#detail-content pre,
-#detail-content code,
-.comment-content pre,
-.comment-content code {
-  word-break: normal;
-  word-wrap: normal;
-  overflow-wrap: normal;
-  white-space: pre-wrap;
-}
-```
+### 🔥 High Priority - Next Up
 
-**Testing Steps:**
-1. Test on mobile viewports (320px, 375px, 768px)
-2. Add RSS feeds with very long titles or URLs
-3. Verify no horizontal scrolling occurs
-4. Confirm code blocks maintain proper formatting
-5. Check that text remains readable across different screen sizes
+#### 1. Search Functionality 🔍
+**Status:** 구현 준비 완료  
+**Estimated Time:** 2-3 hours  
+**Next Steps:**
+1. 헤더에 search input 추가
+2. 실시간 검색 필터 함수 구현 (debounce 적용)
+3. 검색어 하이라이트 기능 (선택사항)
+4. 검색 상태 UI 피드백
 
-**Browser Compatibility:**
-- `word-break: break-word` - Modern browsers
-- `word-wrap: break-word` - Legacy fallback
-- `overflow-wrap: anywhere` - Latest CSS specification
-
-## Planned Features & Improvements
-
-### 1. Bookmark Functionality ⭐
-**Status:** Planned  
-**Priority:** High  
-**Description:** Allow users to bookmark/favorite articles for later reading.
-
-**Implementation Details:**
-- Add `bookmarked` boolean field to article schema in IndexedDB
-- Add star (⭐) icon button to each article item
-- Create "북마크" (Bookmarks) tab in filter tabs
-- Update UI to show bookmarked status with filled/unfilled star
-- Bookmark state persists across app restarts
-
-**UI Changes:**
-```html
-<!-- Article item with bookmark button -->
-<div class="article-item">
-  <!-- existing content -->
-  <sl-icon-button 
-    name="star" 
-    label="북마크" 
-    class="bookmark-btn" 
-    data-guid="{article.guid}"
-  ></sl-icon-button>
-</div>
-```
-
-**Database Schema Update:**
+**Implementation Ready:**
 ```javascript
-// articles store schema
-{ 
-  guid, title, link, author, pubDate, content, feedUrl, read,
-  bookmarked: false  // NEW FIELD
+// 검색 디바운스 함수
+let searchTimeout;
+function handleSearch(searchTerm) {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    currentSearchTerm = searchTerm;
+    renderArticles();
+  }, 300);
 }
 ```
 
-### 2. Remove "모두" (All) Tab
-**Status:** Planned  
-**Priority:** Medium  
-**Description:** Simplify UI by removing the "All" tab, keeping only "읽지 않음" (Unread) and "읽음" (Read) tabs.
+### 📋 Medium Priority - Quick Fixes
 
-**Changes:**
-- Remove `<sl-tab slot="nav" panel="all">모두</sl-tab>` from HTML
-- Update tab filtering logic to handle only 'unread' and 'read' states
-- Default filter becomes 'unread' instead of potentially 'all'
+#### 2. Remove "모두" Tab Cleanup ⚡
+**Status:** 즉시 실행 가능  
+**Estimated Time:** 5분  
+**Current Issue:** HTML line 534에 여전히 존재  
+**Action Items:**
+- `<sl-tab slot="nav" panel="all">모두</sl-tab>` 라인 제거
+- 필터 로직을 'unread'/'read'/'bookmarked' 만으로 단순화
 
-### 3. Search Functionality 🔍
-**Status:** Planned  
-**Priority:** High  
-**Description:** Add client-side search to filter articles by title and content.
+#### 4. Enhanced Article Navigation
+**Status:** UX 개선 필요성 검토 중  
+**Consideration:** 현재 "이전/다음" 버튼이 잘 작동하는지 사용자 피드백 필요  
+**Alternative:** 키보드 네비게이션(←/→)이 이미 구현되어 있어 우선순위 낮음
 
-**Implementation:**
-- Add search input field in header
-- Implement JavaScript-based filtering (no backend required)
-- Search through article titles and content text
-- Real-time filtering as user types (with debounce)
-- Clear search button
+### 🔮 Future Considerations
 
-**UI Addition:**
-```html
-<!-- In header, alongside filter tabs -->
-<sl-input 
-  id="search-input" 
-  placeholder="기사 제목, 내용 검색..." 
-  clearable
-  size="small"
->
-  <sl-icon name="search" slot="prefix"></sl-icon>
-</sl-input>
+#### 5. Automatic Article Cleanup
+**Status:** 데이터베이스 크기 모니터링 후 결정  
+**Trigger:** 1000개 이상 articles 축적 시 구현 검토
+**Note:** 북마크 기능 구현 후 진행 (북마크된 글 보존 필요)
+
+---
+
+## 🚀 Next Action Items
+
+### 🎯 이번 주 목표
+1. ✅ **북마크 기능** - 완료됨!
+2. 🔥 **검색 기능 구현** (2-3일)
+3. ⚡ **"모두" 탭 제거** (5분)
+4. 🧹 **코드 정리 및 최적화** (1일)
+
+### 새로운 구현 순서
+```
+Today: "모두" 탭 제거 (5분)
+Day 1-2: 검색 input + 기본 검색 로직
+Day 3: 검색 UX 개선 + 성능 최적화  
+Day 4: 전체 테스트 + 사용자 테스트
+Day 5: 문서 정리 + 다음 단계 계획
 ```
 
-**Search Logic:**
-```javascript
-function filterArticlesBySearch(articles, searchTerm) {
-  if (!searchTerm) return articles;
-  const term = searchTerm.toLowerCase();
-  return articles.filter(article => 
-    article.title.toLowerCase().includes(term) ||
-    article.content.toLowerCase().includes(term)
-  );
-}
-```
-
-### 4. Enhanced Article Navigation
-**Status:** Planned  
-**Priority:** Medium  
-**Description:** Replace generic "이전/다음" buttons with article titles, potentially using vertical layout for better space utilization.
-
-**Current State:**
-```html
-<sl-button id="detail-prev-btn">이전 (←)</sl-button>
-<sl-button id="detail-next-btn">다음 (→)</sl-button>
-```
-
-**Proposed Enhancement:**
-```html
-<!-- Option 1: Enhanced horizontal layout -->
-<div class="article-nav-enhanced">
-  <sl-button id="detail-prev-btn" class="prev-article-btn">
-    <sl-icon name="arrow-left" slot="prefix"></sl-icon>
-    <span class="article-title-preview">이전: {truncated title...}</span>
-  </sl-button>
-  <sl-button id="detail-next-btn" class="next-article-btn">
-    <span class="article-title-preview">다음: {truncated title...}</span>
-    <sl-icon name="arrow-right" slot="suffix"></sl-icon>
-  </sl-button>
-</div>
-
-<!-- Option 2: Vertical stacked layout -->
-<div class="article-nav-vertical">
-  <div class="nav-item prev-nav" data-guid="{prevGuid}">
-    ↑ 이전: {truncated title with ellipsis}
-  </div>
-  <div class="nav-item next-nav" data-guid="{nextGuid}">
-    ↓ 다음: {truncated title with ellipsis}
-  </div>
-</div>
-```
-
-**Styling Considerations:**
-- `max-width` with `text-overflow: ellipsis`
-- Responsive breakpoints for mobile
-- Hover/focus states
-- Accessible labels with full titles
-
-### 5. Automatic Article Cleanup
-**Status:** Planned  
-**Priority:** Low  
-**Description:** Automatically remove articles older than 7 days to keep database size manageable, but preserve bookmarked articles.
-
-**Implementation:**
-```javascript
-async function cleanupOldArticles() {
-  const oneWeekAgo = new Date();
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-  
-  const store = db.transaction([ARTICLE_STORE], 'readwrite').objectStore(ARTICLE_STORE);
-  
-  store.openCursor().onsuccess = (event) => {
-    const cursor = event.target.result;
-    if (cursor) {
-      const article = cursor.value;
-      const articleDate = new Date(article.pubDate);
-      
-      // Delete if older than 7 days AND not bookmarked
-      if (articleDate < oneWeekAgo && !article.bookmarked) {
-        cursor.delete();
-      }
-      cursor.continue();
-    }
-  };
-}
-
-// Run cleanup on app startup and periodically
-setInterval(cleanupOldArticles, 24 * 60 * 60 * 1000); // Daily
-```
-
-### Development Priorities
-1. **Bookmark functionality** - Core feature for user article management
-2. **Search functionality** - Significantly improves article discoverability  
-3. **Remove All tab** - Simple UI cleanup
-4. **Enhanced navigation** - Better UX for article browsing
-5. **Auto cleanup** - Maintenance feature, can be implemented last
-
-### Testing Strategy
-- **Manual testing** on various screen sizes (320px, 768px, 1024px+)
-- **Keyboard navigation** testing for all new interactive elements
-- **IndexedDB operations** testing for bookmark and cleanup functionality
-- **Performance testing** with large datasets (1000+ articles) for search
-- **Cross-browser testing** on Chrome, Firefox, Safari
-
-### Migration Considerations
-- Existing articles will need `bookmarked: false` default value
-- No breaking changes to existing RSS feed or article data
-- Feature additions are backwards compatible
+### 테스트 체크리스트
+- [x] 북마크 기능 동작 확인
+- [x] 북마크 필터링 및 카운터  
+- [x] 모바일 반응형 (320px, 375px, 768px)
+- [x] 키보드 네비게이션
+- [ ] 검색 기능 (구현 예정)
+- [ ] 검색 성능 (100+ articles)
+- [ ] "모두" 탭 제거 확인
+- [ ] 크로스 브라우저 테스트
