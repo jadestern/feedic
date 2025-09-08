@@ -1,0 +1,21 @@
+{
+  "header": "# 📦 변경 로그\n\n[Feedic](https://github.com/jade-kim/gemini-feedic)의 모든 주목할만한 변경 사항이 이 파일에 기록됩니다.\n\n이 프로젝트는 [Semantic Versioning](https://semver.org/)을 따르며 [Conventional Commits](https://conventionalcommits.org/)를 사용합니다.",
+  "types": [
+    { "type": "feat", "section": "✨ 새로운 기능" },
+    { "type": "fix", "section": "🐞 버그 수정" },
+    { "type": "docs", "section": "📚 문서" },
+    { "type": "style", "section": "💎 스타일" },
+    { "type": "refactor", "section": "♻️ 리팩토링" },
+    { "type": "perf", "section": "⚡ 성능" },
+    { "type": "test", "section": "🧪 테스트" },
+    { "type": "build", "section": "🛠️ 빌드" },
+    { "type": "ci", "section": "👷 CI/CD" },
+    { "type": "chore", "section": "📦 기타" },
+    { "type": "revert", "section": "⏪ 되돌리기" }
+  ],
+  "compareUrlFormat": "https://github.com/jade-kim/gemini-feedic/compare/{{previousTag}}...{{currentTag}}",
+  "commitUrlFormat": "https://github.com/jade-kim/gemini-feedic/commit/{{hash}}",
+  "issueUrlFormat": "https://github.com/jade-kim/gemini-feedic/issues/{{id}}",
+  "userUrlFormat": "https://github.com/{{user}}",
+  "releaseCommitMessageFormat": "chore(release): v{{currentVersion}}"
+}

@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Skip version bump if this is already a release commit
+if git log -1 --pretty=%s | grep -q "chore(release):"; then
+  exit 0
+fi
+
+# Auto version bump after each commit
+pnpm version
