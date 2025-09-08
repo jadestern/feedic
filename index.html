@@ -508,8 +508,7 @@
             <div class="flex items-center space-x-3">
               <sl-icon-button id="menu-btn" name="list" label="Menu" class="md:hidden text-2xl"></sl-icon-button>
               <div class="flex flex-col">
-                <h2 id="current-feed-title" class="text-xl font-semibold truncate text-gray-900 dark:text-gray-100">모든
-                  기사</h2>
+                <h2 id="current-feed-title" class="text-xl font-semibold truncate text-gray-900 dark:text-gray-100">모든 피드</h2>
                 <span id="last-update-time" class="text-xs text-gray-500 dark:text-gray-400"></span>
               </div>
               <sl-icon-button id="help-btn" name="question-circle" label="Help" class="text-xl"></sl-icon-button>
@@ -531,7 +530,6 @@
               <sl-tab slot="nav" panel="unread" active>읽지 않음</sl-tab>
               <sl-tab slot="nav" panel="read">읽음</sl-tab>
               <sl-tab slot="nav" panel="bookmarked">북마크</sl-tab>
-              <sl-tab slot="nav" panel="all">모두</sl-tab>
             </sl-tab-group>
             <sl-icon-button id="mark-all-read-btn" name="check2-all" label="현재 목록 모두 읽음으로 표시"
               class="text-2xl"></sl-icon-button>
@@ -714,8 +712,6 @@
       const feeds = await getAllFeeds();
       const feedListHTML = `
                 <sl-menu>
-                    <sl-menu-item data-url="all" class="${!currentFilter ? 'active' : ''}">모든 기사</sl-menu-item>
-                    <sl-divider></sl-divider>
                     ${feeds.map(feed => `
                         <sl-menu-item data-url="${feed.url}" class="${currentFilter === feed.url ? 'active' : ''}">
                             <div class="w-full flex justify-between items-center">
@@ -776,12 +772,11 @@
       document.querySelector('sl-tab[panel="unread"]').innerHTML = `읽지 않음 <sl-badge pill>${unreadCount}</sl-badge>`;
       document.querySelector('sl-tab[panel="read"]').innerHTML = `읽음 <sl-badge pill>${readCount}</sl-badge>`;
       document.querySelector('sl-tab[panel="bookmarked"]').innerHTML = `북마크 <sl-badge pill>${bookmarkedCount}</sl-badge>`;
-      document.querySelector('sl-tab[panel="all"]').innerHTML = `모두 <sl-badge pill>${allArticles.length}</sl-badge>`;
 
       if (articleFilter === 'unread') currentVisibleArticles = allArticles.filter(a => !a.read);
       else if (articleFilter === 'read') currentVisibleArticles = allArticles.filter(a => a.read);
       else if (articleFilter === 'bookmarked') currentVisibleArticles = allArticles.filter(a => a.bookmarked);
-      else currentVisibleArticles = allArticles;
+      else currentVisibleArticles = allArticles.filter(a => !a.read); // Default to unread
 
       articleListEl.innerHTML = '';
       emptyStateEl.classList.toggle('hidden', currentVisibleArticles.length > 0);
@@ -1614,10 +1609,10 @@
       const selectedItem = e.detail.item;
       if (selectedItem.closest('#feed-list') || selectedItem.closest('#mobile-sidebar-content')) {
         const url = selectedItem.dataset.url;
-        currentFilter = (url === 'all') ? null : url;
+        currentFilter = url;
 
         const feed = (await getAllFeeds()).find(f => f.url === url);
-        currentFeedTitleEl.textContent = feed ? (feed.title || url) : '모든 기사';
+        currentFeedTitleEl.textContent = feed ? (feed.title || url) : '기본 피드';
         await renderFeeds();
         await renderArticles(currentFilter);
 
@@ -1633,7 +1628,7 @@
         const url = deleteBtn.dataset.url;
         if (confirm(`'${url}' 피드를 삭제하시겠습니까?`)) {
           await deleteFeed(url);
-          if (currentFilter === url) { currentFilter = null; currentFeedTitleEl.textContent = '모든 기사'; }
+          if (currentFilter === url) { currentFilter = null; currentFeedTitleEl.textContent = '모든 피드'; }
           await renderFeeds(); await renderArticles(currentFilter);
         }
       }
