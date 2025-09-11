@@ -789,6 +789,7 @@
 
   <script>
     const DB_NAME = 'RSSReaderDB', DB_VERSION = 1, FEED_STORE = 'feeds', ARTICLE_STORE = 'articles';
+    const MAX_ARTICLE_AGE_DAYS = 7; // 기사 보관 기간 (일)
     let db;
 
     // DB, Feed, Article management functions (unchanged)
@@ -1187,6 +1188,8 @@
         const originalSiteLink = doc.querySelector('channel > link:not([rel])')?.textContent.trim() || doc.querySelector('feed > link[rel="alternate"]')?.getAttribute('href') || feedUrl;
 
         const items = Array.from(doc.querySelectorAll('item, entry'));
+        const cutoffDate = new Date(Date.now() - MAX_ARTICLE_AGE_DAYS * 24 * 60 * 60 * 1000);
+        
         const articles = items.map(item => {
           const title = item.querySelector('title')?.textContent || '[No Title]';
           const linkElement = item.querySelector('link');
@@ -1194,9 +1197,13 @@
           const guid = item.querySelector('guid')?.textContent || item.querySelector('id')?.textContent || link;
           const pubDate = item.querySelector('pubDate, published, updated')?.textContent || new Date().toISOString();
           const author = item.querySelector('author > name, creator')?.textContent || '';
-          const content = item.querySelector('*|content, content')?.textContent || item.querySelector('description, summary')?.textContent || '';
+          const content = item.querySelector('*|content, content')?.textContent || item.querySelector('descriptions, summary')?.textContent || '';
 
           return { guid, title, link, author, pubDate: new Date(pubDate).toISOString(), content, feedUrl };
+        }).filter(article => {
+          // 7일 이내의 기사만 저장 (북마크된 기사는 별도 처리)
+          const articleDate = new Date(article.pubDate);
+          return articleDate >= cutoffDate;
         });
 
 

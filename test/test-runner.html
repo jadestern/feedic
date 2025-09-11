@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>기사 필터링 유닛 테스트</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #results {
+            background: #fff;
+            padding: 20px;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+            font-family: 'Monaco', 'Menlo', monospace;
+            white-space: pre-line;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 기사 날짜 필터링 유닛 테스트</h1>
+    
+    <div class="info">
+        <p><strong>테스트 목적:</strong> 수정된 RSS 파싱 로직이 7일 이상 된 기사를 올바르게 필터링하는지 확인합니다.</p>
+        <p><strong>테스트 범위:</strong></p>
+        <ul>
+            <li>7일 이내/이후 기사 필터링</li>
+            <li>경계값 처리 (정확히 7일된 기사)</li>
+            <li>빈 피드 및 잘못된 날짜 처리</li>
+            <li>다양한 날짜 조합 시나리오</li>
+        </ul>
+    </div>
+
+    <div class="container">
+        <button onclick="runAllTests()">테스트 실행</button>
+        <button onclick="clearResults()">결과 지우기</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script src="article-age-filter.test.js"></script>
+    <script>
+        let originalConsoleLog = console.log;
+        let originalConsoleAssert = console.assert;
+        let originalConsoleError = console.error;
+        
+        function runAllTests() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+            
+            // 콘솔 출력을 화면에 표시하도록 리다이렉트
+            console.log = function(...args) {
+                const message = args.join(' ');
+                resultsDiv.innerHTML += message + '\n';
+                originalConsoleLog.apply(console, args);
+            };
+            
+            console.assert = function(condition, message) {
+                if (!condition) {
+                    const errorMsg = `❌ Assertion failed: ${message}`;
+                    resultsDiv.innerHTML += errorMsg + '\n';
+                    originalConsoleAssert.apply(console, arguments);
+                }
+            };
+            
+            console.error = function(...args) {
+                const message = '❌ ERROR: ' + args.join(' ');
+                resultsDiv.innerHTML += message + '\n';
+                originalConsoleError.apply(console, args);
+            };
+            
+            try {
+                // 테스트 실행
+                window.ArticleFilterTests.runTests();
+            } catch (error) {
+                resultsDiv.innerHTML += `\n❌ 테스트 실행 중 에러 발생: ${error.message}\n`;
+                console.error('Test execution error:', error);
+            }
+            
+            // 콘솔 함수들을 원래대로 복원
+            console.log = originalConsoleLog;
+            console.assert = originalConsoleAssert;
+            console.error = originalConsoleError;
+            
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        // 페이지 로드 시 자동으로 테스트 실행
+        window.addEventListener('load', function() {
+            setTimeout(runAllTests, 500);
+        });
+    </script>
+</body>
+</html>
