@@ -703,7 +703,16 @@
         <sl-button id="detail-next-btn" size="small"><sl-icon slot="suffix" name="arrow-right-short"></sl-icon>다음
           (→)</sl-button>
       </div>
-      <sl-button id="detail-link-btn" href="#" target="_blank" variant="primary" size="small">원문 보기</sl-button>
+      <div class="flex items-center space-x-2">
+        <sl-icon-button 
+          id="detail-bookmark-btn" 
+          name="star" 
+          label="북마크" 
+          class="bookmark-btn text-2xl text-gray-400"
+          aria-pressed="false">
+        </sl-icon-button>
+        <sl-button id="detail-link-btn" href="#" target="_blank" variant="primary" size="small">원문 보기</sl-button>
+      </div>
     </header>
     <div id="detail-scroll-container" class="flex-1 overflow-y-auto p-6 md:p-8 lg:p-12">
       <div class="max-w-3xl mx-auto">
@@ -780,6 +789,9 @@
       <li class="flex items-center"><kbd
           class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-3 py-1 mr-4">Space</kbd><span>선택한
           기사 상세 보기</span></li>
+      <li class="flex items-center"><kbd
+          class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mr-4">B</kbd><span>상세
+          보기에서 북마크 토글</span></li>
       <li class="flex items-center"><kbd
           class="font-mono text-sm font-semibold text-gray-900 bg-gray-200 rounded-md px-2 py-1 mr-4">⌫</kbd><span>상세
           보기에서 목록으로 돌아가기 / 도움말 닫기</span></li>
@@ -1758,6 +1770,15 @@
       document.getElementById('detail-link-btn').href = article.link;
       document.getElementById('detail-scroll-container').scrollTop = 0;
 
+      // 북마크 상태 동기화
+      const detailBookmarkBtn = document.getElementById('detail-bookmark-btn');
+      if (detailBookmarkBtn) {
+        const isBookmarked = article.bookmarked || false;
+        detailBookmarkBtn.name = isBookmarked ? 'star-fill' : 'star';
+        detailBookmarkBtn.className = `bookmark-btn text-2xl ${isBookmarked ? 'text-yellow-500' : 'text-gray-400'}`;
+        detailBookmarkBtn.setAttribute('aria-pressed', isBookmarked.toString());
+      }
+
       const detailContentEl = document.getElementById('detail-content');
       const MIN_LENGTH_FOR_FULL_CONTENT = 1500;
       if (article.content && article.content.length > MIN_LENGTH_FOR_FULL_CONTENT) {
@@ -1906,6 +1927,47 @@
           await renderFeeds(); await renderArticles(currentFilter);
         }
       }
+      
+      // 상세 페이지 북마크 버튼 처리
+      const detailBookmarkBtn = e.target.closest('#detail-bookmark-btn');
+      if (detailBookmarkBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // 현재 GUID 찾기 - URL에서 추출
+        const currentHash = window.location.hash;
+        if (!currentHash.startsWith('#detail/')) return;
+        const guid = decodeURIComponent(currentHash.substring(8));
+        
+        const article = await getArticleByGuid(guid);
+        if (!article) return;
+        
+        const nextState = !article.bookmarked;
+        await setArticleBookmarkStatus(guid, nextState);
+        
+        // Optimistic UI 업데이트
+        detailBookmarkBtn.name = nextState ? 'star-fill' : 'star';
+        detailBookmarkBtn.className = `bookmark-btn text-2xl ${nextState ? 'text-yellow-500' : 'text-gray-400'}`;
+        detailBookmarkBtn.setAttribute('aria-pressed', nextState.toString());
+        
+        // 전역 상태 업데이트를 위한 이벤트 발생
+        document.dispatchEvent(new CustomEvent('bookmark-changed', {
+          detail: { articleId: guid, status: nextState }
+        }));
+        
+        return;
+      }
+    });
+    
+    // 북마크 상태 변경 이벤트 리스너 - 메인 화면 카운트 업데이트
+    document.addEventListener('bookmark-changed', async (e) => {
+      // 전체 기사 수를 다시 조회하여 카운트 업데이트
+      const allArticles = await getArticles(currentFilter);
+      const bookmarkedCount = allArticles.filter(a => a.bookmarked).length;
+      const bookmarkTab = document.querySelector('sl-tab[panel="bookmarked"]');
+      if (bookmarkTab) {
+        bookmarkTab.innerHTML = `북마크 <sl-badge pill>${bookmarkedCount}</sl-badge>`;
+      }
     });
 
     // 북마크 버튼 클릭 전용 이벤트 위임 핸들러
@@ -2041,6 +2103,13 @@
             document.getElementById('detail-next-btn').click();
           } else if (e.key === 'ArrowLeft') {
             document.getElementById('detail-prev-btn').click();
+          } else if (e.key === 'b' || e.key === 'B') {
+            // 북마크 토글 단축키
+            e.preventDefault();
+            const bookmarkBtn = document.getElementById('detail-bookmark-btn');
+            if (bookmarkBtn && !e.repeat) {
+              bookmarkBtn.click();
+            }
           } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
             e.preventDefault();
             const container = document.getElementById('detail-scroll-container');
