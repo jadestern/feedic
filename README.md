@@ -4,7 +4,7 @@
 
 Feedic은 Vanilla JavaScript로 구축된 클라이언트 사이드 RSS 리더입니다. IndexedDB를 사용한 로컬 데이터 저장과 CORS 프록시를 통한 RSS 피드 가져오기를 지원합니다.
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/jaddstern/feedic/releases)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/jadestern/feedic/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## ✨ 주요 기능
