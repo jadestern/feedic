@@ -5,11 +5,22 @@
   <meta charset="UTF-8">
   <link rel="icon" type="image/x-icon" href="public/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="RSS Reader" />
+  <meta name="description" content="Korean RSS Reader Web Application" />
+  
+  <!-- PWA Icons -->
   <link rel="apple-touch-icon" sizes="180x180" href="public/apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="public/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="public/favicon-16x16.png" />
   <link rel="manifest" href="public/site.webmanifest" />
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#3b82f6" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Feedic" />
+  <meta name="application-name" content="Feedic" />
+  <meta name="msapplication-TileColor" content="#3b82f6" />
+  <meta name="msapplication-config" content="none" />
   <title>RSS Reader</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -396,6 +407,28 @@
 
     #global-loader {
       transition: opacity 0.3s ease-in-out;
+    }
+    
+    /* PWA Splash Screen Optimization */
+    @media (display-mode: standalone) {
+      body {
+        /* Prevent excessive logo scaling in PWA standalone mode */
+        --pwa-icon-size: min(25vw, 120px);
+      }
+      
+      #global-loader sl-spinner {
+        /* Limit spinner size in standalone PWA mode */
+        font-size: var(--pwa-icon-size, 3rem) !important;
+        max-width: var(--pwa-icon-size, 120px);
+        max-height: var(--pwa-icon-size, 120px);
+      }
+    }
+    
+    /* Additional responsive constraints for PWA */
+    @media (max-width: 480px) and (display-mode: standalone) {
+      #global-loader sl-spinner {
+        font-size: min(20vw, 80px) !important;
+      }
     }
 
     sl-tab sl-badge {
