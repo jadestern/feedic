@@ -3,6 +3,13 @@
 [Feedic](https://github.com/jade-kim/gemini-feedic)의 모든 주목할만한 변경 사항이 이 파일에 기록됩니다.
 
 이 프로젝트는 [Semantic Versioning](https://semver.org/)을 따르며 [Conventional Commits](https://conventionalcommits.org/)를 사용합니다.
+## [1.4.0](https://github.com/jade-kim/gemini-feedic/compare/v1.3.0...v1.4.0) (2025-09-16)
+
+
+### ✨ 새로운 기능
+
+* 상세 페이지에 북마크 기능 추가 ([11734bc](https://github.com/jade-kim/gemini-feedic/commit/11734bcd38880ff79c896727af9da9f57d03674b))
+
 ## [1.3.0](https://github.com/jade-kim/gemini-feedic/compare/v1.2.0...v1.3.0) (2025-09-11)
 
 
