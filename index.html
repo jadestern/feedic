@@ -133,6 +133,39 @@
       margin-bottom: 0;
     }
 
+    /* Theme toggle button */
+    .theme-toggle-btn {
+      background: none;
+      border: none;
+      padding: 0.5rem;
+      border-radius: 0.375rem;
+      color: #6b7280;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .theme-toggle-btn:hover {
+      background-color: #f3f4f6;
+      color: #374151;
+    }
+
+    .theme-toggle-btn:focus-visible {
+      outline: 2px solid var(--sl-color-primary-600);
+      outline-offset: 2px;
+    }
+
+    .dark .theme-toggle-btn {
+      color: #9ca3af;
+    }
+
+    .dark .theme-toggle-btn:hover {
+      background-color: #374151;
+      color: #d1d5db;
+    }
+
     /* Styling for code blocks */
     #detail-content pre {
       background-color: #282c34;
@@ -657,14 +690,9 @@
             </div>
             <div class="flex items-center space-x-2">
               <sl-icon-button id="search-btn" name="search" label="검색" class="text-xl"></sl-icon-button>
-              <sl-dropdown>
-                <sl-icon-button name="sun" label="Theme" class="text-xl" slot="trigger"></sl-icon-button>
-                <sl-menu id="theme-menu">
-                  <sl-menu-item value="light">Light <sl-icon name="check" slot="suffix"></sl-icon></sl-menu-item>
-                  <sl-menu-item value="dark">Dark <sl-icon name="check" slot="suffix"></sl-icon></sl-menu-item>
-                  <sl-menu-item value="system">System <sl-icon name="check" slot="suffix"></sl-icon></sl-menu-item>
-                </sl-menu>
-              </sl-dropdown>
+              <button id="theme-toggle-main" class="theme-toggle-btn" data-role="theme-toggle" aria-label="테마 변경">
+                <sl-icon name="sun" class="text-xl"></sl-icon>
+              </button>
               <sl-spinner id="loader" class="loader hidden"></sl-spinner>
             </div>
           </div>
@@ -732,14 +760,9 @@
           <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">검색</h2>
         </div>
         <div class="flex items-center space-x-2">
-          <sl-dropdown>
-            <sl-icon-button name="sun" label="Theme" class="text-xl" slot="trigger"></sl-icon-button>
-            <sl-menu id="search-theme-menu">
-              <sl-menu-item value="light">Light <sl-icon name="check" slot="suffix"></sl-icon></sl-menu-item>
-              <sl-menu-item value="dark">Dark <sl-icon name="check" slot="suffix"></sl-icon></sl-menu-item>
-              <sl-menu-item value="system">System <sl-icon name="check" slot="suffix"></sl-icon></sl-menu-item>
-            </sl-menu>
-          </sl-dropdown>
+          <button id="theme-toggle-search" class="theme-toggle-btn" data-role="theme-toggle" aria-label="테마 변경">
+            <sl-icon name="sun" class="text-xl"></sl-icon>
+          </button>
         </div>
       </div>
       <div class="max-w-2xl mx-auto">
@@ -2343,38 +2366,52 @@
     });
 
     // Theme Logic
-    const themeMenu = document.getElementById('theme-menu');
-    const searchThemeMenu = document.getElementById('search-theme-menu');
-    const themeToggleButton = document.querySelector('sl-dropdown sl-icon-button');
     const html = document.documentElement;
+    const themes = ['light', 'dark', 'system'];
 
     function applyTheme(theme) {
       const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
       html.classList.toggle('dark', isDark);
       html.classList.toggle('sl-theme-dark', isDark);
-      themeToggleButton.name = isDark ? 'moon-stars' : 'sun';
 
-      // Update both main and search theme menus
-      [themeMenu, searchThemeMenu].forEach(menu => {
-        if (menu) {
-          menu.querySelectorAll('sl-menu-item').forEach(item => {
-            const checkIcon = item.querySelector('sl-icon[slot="suffix"]');
-            checkIcon.style.visibility = item.value === theme ? 'visible' : 'hidden';
-          });
+      // Update icons for all theme toggle buttons
+      const themeButtons = document.querySelectorAll('[data-role="theme-toggle"]');
+      themeButtons.forEach(button => {
+        const icon = button.querySelector('sl-icon');
+        if (icon) {
+          switch (theme) {
+            case 'light':
+              icon.name = 'sun';
+              break;
+            case 'dark':
+              icon.name = 'moon-stars';
+              break;
+            case 'system':
+              icon.name = 'display';
+              break;
+          }
         }
       });
     }
 
-    // Handle theme selection from both menus
-    function handleThemeSelect(event) {
-      const theme = event.detail.item.value;
-      localStorage.setItem('rss-theme', theme);
-      applyTheme(theme);
+    function cycleTheme() {
+      const currentTheme = localStorage.getItem('rss-theme') || 'system';
+      const currentIndex = themes.indexOf(currentTheme);
+      const nextIndex = (currentIndex + 1) % themes.length;
+      const nextTheme = themes[nextIndex];
+      
+      localStorage.setItem('rss-theme', nextTheme);
+      applyTheme(nextTheme);
     }
 
-    themeMenu.addEventListener('sl-select', handleThemeSelect);
-    searchThemeMenu.addEventListener('sl-select', handleThemeSelect);
+    // Add click listeners to all theme toggle buttons
+    document.addEventListener('DOMContentLoaded', () => {
+      const themeButtons = document.querySelectorAll('[data-role="theme-toggle"]');
+      themeButtons.forEach(button => {
+        button.addEventListener('click', cycleTheme);
+      });
+    });
 
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
       const currentTheme = localStorage.getItem('rss-theme') || 'system';

@@ -73,7 +73,7 @@ This application requires no build, compile, or bundle steps. Simply open `index
 - **Read/unread tracking**: Mark articles as read/unread
 - **Content extraction**: Full article content via Readability
 - **Keyboard shortcuts**: Navigation and interaction
-- **Dark mode support**: System preference aware
+- **Theme toggle system**: One-click cycling between Light → Dark → System modes
 - **Responsive layout**: Works on mobile and desktop
 - **Resizable sidebar**: Persistent layout preferences
 - **Offline capable**: All data stored locally in IndexedDB
@@ -91,6 +91,41 @@ No automated tests are present. Test manually by:
 4. Testing responsive behavior on different screen sizes
 
 > 📋 **기능 이력 및 완료된 작업**: 자세한 변경 로그와 릴리스 노트는 [CHANGELOG.md](./CHANGELOG.md)를 참조하세요.
+
+## Recent Updates 🆕
+
+### ✅ Theme Toggle Enhancement (v1.1.2)
+**Status:** 완료 (2024-09-16)  
+**Changes:**
+- 기존 드롭다운 선택 방식을 원클릭 토글로 변경
+- 테마 순환: Light → Dark → System → Light
+- 동적 아이콘 변경: ☀️ (light) / 🌙 (dark) / 💻 (system)
+- 시스템 테마 자동 감지 및 반응 유지
+- 향상된 UX: 더 직관적이고 빠른 테마 전환
+
+**Implementation Details:**
+```html
+<!-- Old: Dropdown menu -->
+<sl-dropdown>
+  <sl-menu>...</sl-menu>
+</sl-dropdown>
+
+<!-- New: Toggle button -->
+<button data-role="theme-toggle" class="theme-toggle-btn">
+  <sl-icon name="sun"></sl-icon>
+</button>
+```
+
+```javascript
+// Theme cycling logic
+const themes = ['light', 'dark', 'system'];
+function cycleTheme() {
+  const currentTheme = localStorage.getItem('rss-theme') || 'system';
+  const nextTheme = themes[(themes.indexOf(currentTheme) + 1) % themes.length];
+  localStorage.setItem('rss-theme', nextTheme);
+  applyTheme(nextTheme);
+}
+```
 
 ## Current Tasks & Roadmap 🎯
 
@@ -115,6 +150,9 @@ No automated tests are present. Test manually by:
 ## 테스트 체크리스트
 
 ### 기본 기능 테스트
+- [x] 테마 토글 기능 테스트 (Light → Dark → System 순환)
+- [x] 시스템 테마 자동 감지 테스트
+- [x] 테마 설정 유지 테스트 (localStorage)
 - [ ] 검색 성능 테스트 (100+ articles)
 - [ ] 크로스 브라우저 테스트 (Chrome, Firefox, Safari)
 - [ ] 대량 기사 정리 테스트 (1000+ articles)
