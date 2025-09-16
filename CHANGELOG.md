@@ -3,6 +3,13 @@
 [Feedic](https://github.com/jade-kim/gemini-feedic)의 모든 주목할만한 변경 사항이 이 파일에 기록됩니다.
 
 이 프로젝트는 [Semantic Versioning](https://semver.org/)을 따르며 [Conventional Commits](https://conventionalcommits.org/)를 사용합니다.
+## [1.5.0](https://github.com/jade-kim/gemini-feedic/compare/v1.4.0...v1.5.0) (2025-09-16)
+
+
+### ✨ 새로운 기능
+
+* Replace dropdown theme selector with one-click toggle ([8983bfc](https://github.com/jade-kim/gemini-feedic/commit/8983bfc32313685f3a22cefff4f693089f0c6a91))
+
 ## [1.4.0](https://github.com/jade-kim/gemini-feedic/compare/v1.3.0...v1.4.0) (2025-09-16)
 
 
