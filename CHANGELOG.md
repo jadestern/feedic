@@ -3,6 +3,13 @@
 [Feedic](https://github.com/jade-kim/gemini-feedic)의 모든 주목할만한 변경 사항이 이 파일에 기록됩니다.
 
 이 프로젝트는 [Semantic Versioning](https://semver.org/)을 따르며 [Conventional Commits](https://conventionalcommits.org/)를 사용합니다.
+### [1.6.1](https://github.com/jade-kim/gemini-feedic/compare/v1.6.0...v1.6.1) (2025-09-16)
+
+
+### 🐞 버그 수정
+
+* add missing comma in PWA manifest JSON ([c0b06d5](https://github.com/jade-kim/gemini-feedic/commit/c0b06d5b1690881e939806848ee1f236c0030814))
+
 ## [1.6.0](https://github.com/jade-kim/gemini-feedic/compare/v1.5.0...v1.6.0) (2025-09-16)
 
 
