@@ -693,7 +693,7 @@
       <aside id="sidebar" class="bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
         <div class="p-4 border-b dark:border-gray-700">
           <div class="flex items-center justify-between">
-            <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">Feedic <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">v1.1.1</span></h1>
+            <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">Feedic <span id="app-version" class="text-xs text-gray-500 dark:text-gray-400 font-normal">v1.6.2</span></h1>
             <sl-icon-button id="mobile-close-btn" name="x-lg" label="Close" class="text-xl md:hidden"></sl-icon-button>
           </div>
         </div>
@@ -2453,10 +2453,30 @@
       }
     });
 
+    // Load app version from package.json
+    async function loadAppVersion() {
+      try {
+        const response = await fetch('/package.json');
+        if (response.ok) {
+          const packageInfo = await response.json();
+          const versionElement = document.getElementById('app-version');
+          if (versionElement && packageInfo.version) {
+            versionElement.textContent = `v${packageInfo.version}`;
+          }
+        }
+      } catch (error) {
+        console.log('Could not load version from package.json:', error);
+        // Keep the hardcoded version as fallback
+      }
+    }
+
     // 7. 앱 시작
     window.addEventListener('load', async () => {
       const globalLoader = document.getElementById('global-loader');
       try {
+        // Load app version first
+        await loadAppVersion();
+        
         const savedWidth = localStorage.getItem('sidebarWidth');
         if (savedWidth) {
           document.documentElement.style.setProperty('--sidebar-width', savedWidth);
