@@ -10,7 +10,8 @@ This is **Feedic**, a Korean RSS reader web application built as a single HTML f
 
 ### Single File Application
 - **Core file**: `index.html` - Contains all HTML, CSS, and JavaScript
-- **Static assets**: `public/` directory with favicons and web manifest
+- **Server**: `server.js` - Simple Node.js server with API endpoints and static file serving
+- **Static assets**: `public/` directory with favicons, web manifest, and PWA icons
 
 ### Key Technologies
 - **Frontend**: Vanilla JavaScript, no build system required
@@ -40,7 +41,13 @@ Two IndexedDB stores:
 
 ### Running the Application
 ```bash
-# Serve the file with any static server, e.g.:
+# Development server with auto-reload
+npm run dev
+
+# Production server
+npm start
+
+# Alternative: serve with any static server
 python -m http.server 8000
 # or
 npx serve .
@@ -71,7 +78,11 @@ This application requires no build, compile, or bundle steps. Simply open `index
 ### Key Features
 - **Multi-feed support**: Add multiple RSS/Atom feeds
 - **Read/unread tracking**: Mark articles as read/unread
+- **Bookmark system**: Star articles for later reading
 - **Content extraction**: Full article content via Readability
+- **Search functionality**: Full-text search across all articles
+- **PWA support**: Install as app with optimized icons and splash screens
+- **Dynamic version display**: Auto-sync version from package.json
 - **Keyboard shortcuts**: Navigation and interaction
 - **Theme toggle system**: One-click cycling between Light → Dark → System modes
 - **Responsive layout**: Works on mobile and desktop
@@ -93,6 +104,53 @@ No automated tests are present. Test manually by:
 > 📋 **기능 이력 및 완료된 작업**: 자세한 변경 로그와 릴리스 노트는 [CHANGELOG.md](./CHANGELOG.md)를 참조하세요.
 
 ## Recent Updates 🆕
+
+### ✅ Dynamic Version Display (v1.7.0)
+**Status:** 완료 (2024-09-19)  
+**Changes:**
+- Feedic 로고 옆 버전 정보가 package.json과 자동 동기화
+- 서버에 `/package.json` 엔드포인트 추가
+- 동적 버전 로딩 함수 구현
+- 폴백 시스템으로 하드코딩된 버전 유지
+- 서버 정적 파일 서비스 기능 개선
+
+**Implementation Details:**
+```javascript
+// Dynamic version loading
+async function loadAppVersion() {
+  try {
+    const response = await fetch('/package.json');
+    const packageInfo = await response.json();
+    document.getElementById('app-version').textContent = `v${packageInfo.version}`;
+  } catch (error) {
+    // Fallback to hardcoded version
+  }
+}
+```
+
+### ✅ PWA Icon & Splash Screen Optimization (v1.6.0-1.6.2)
+**Status:** 완료 (2024-09-16~19)  
+**Changes:**
+- PWA 스플래시 스크린에서 로고 과도한 크기 문제 해결
+- CSS 미디어 쿼리로 스플래시 스크린 로고 크기 제어
+- 다양한 크기의 PWA 아이콘 생성 (48px~512px)
+- PWA 메타데이터 개선 및 표준 준수
+- 모바일 디바이스별 최적화
+
+**Implementation Details:**
+```css
+/* PWA Splash Screen Optimization */
+@media (display-mode: standalone) {
+  body {
+    --pwa-icon-size: min(25vw, 120px);
+  }
+  #global-loader sl-spinner {
+    font-size: var(--pwa-icon-size, 3rem) !important;
+    max-width: var(--pwa-icon-size, 120px);
+    max-height: var(--pwa-icon-size, 120px);
+  }
+}
+```
 
 ### ✅ Theme Toggle Enhancement (v1.1.2)
 **Status:** 완료 (2024-09-16)  
