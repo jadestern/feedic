@@ -1,6 +1,6 @@
 {
   "name": "gemini-feedic",
-  "version": "1.6.1",
+  "version": "1.7.0",
   "description": "RSS Reader with auto-refresh development server",
   "main": "server.js",
   "packageManager": "pnpm@10.15.1",
