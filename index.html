@@ -412,22 +412,22 @@
     /* PWA Splash Screen Optimization */
     @media (display-mode: standalone) {
       body {
-        /* Prevent excessive logo scaling in PWA standalone mode */
-        --pwa-icon-size: min(25vw, 120px);
+        /* Prevent excessive spinner scaling in PWA standalone mode */
+        --pwa-spinner-size: min(20vw, 60px);
       }
       
       #global-loader sl-spinner {
         /* Limit spinner size in standalone PWA mode */
-        font-size: var(--pwa-icon-size, 3rem) !important;
-        max-width: var(--pwa-icon-size, 120px);
-        max-height: var(--pwa-icon-size, 120px);
+        font-size: var(--pwa-spinner-size, 1.5rem) !important;
+        max-width: var(--pwa-spinner-size, 60px);
+        max-height: var(--pwa-spinner-size, 60px);
       }
     }
     
     /* Additional responsive constraints for PWA */
     @media (max-width: 480px) and (display-mode: standalone) {
       #global-loader sl-spinner {
-        font-size: min(20vw, 80px) !important;
+        font-size: min(15vw, 40px) !important;
       }
     }
 
@@ -683,7 +683,7 @@
 <body class="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 antialiased">
 
   <div id="global-loader" class="fixed inset-0 bg-white dark:bg-gray-900 z-[9999] flex items-center justify-center">
-    <sl-spinner style="font-size: 3rem;"></sl-spinner>
+    <sl-spinner style="font-size: 1.5rem;"></sl-spinner>
   </div>
 
   <!-- Main App View -->
