@@ -3,6 +3,13 @@
 [Feedic](https://github.com/jade-kim/gemini-feedic)의 모든 주목할만한 변경 사항이 이 파일에 기록됩니다.
 
 이 프로젝트는 [Semantic Versioning](https://semver.org/)을 따르며 [Conventional Commits](https://conventionalcommits.org/)를 사용합니다.
+## [1.9.0](https://github.com/jade-kim/gemini-feedic/compare/v1.8.0...v1.9.0) (2025-09-19)
+
+
+### ✨ 새로운 기능
+
+* update icon ([4947540](https://github.com/jade-kim/gemini-feedic/commit/4947540649446c87fd59e18258687da2950fc345))
+
 ## [1.8.0](https://github.com/jade-kim/gemini-feedic/compare/v1.7.1...v1.8.0) (2025-09-19)
 
 
