@@ -3,6 +3,23 @@
 [Feedic](https://github.com/jade-kim/gemini-feedic)의 모든 주목할만한 변경 사항이 이 파일에 기록됩니다.
 
 이 프로젝트는 [Semantic Versioning](https://semver.org/)을 따르며 [Conventional Commits](https://conventionalcommits.org/)를 사용합니다.
+## [1.8.0](https://github.com/jade-kim/gemini-feedic/compare/v1.7.1...v1.8.0) (2025-09-19)
+
+
+### 🐞 버그 수정
+
+* PWA 스피너 크기 최적화 ([deaec67](https://github.com/jade-kim/gemini-feedic/commit/deaec673f0b921c0a8fa30018584ec75beeae73b))
+
+
+### 📦 기타
+
+* **release:** v{{currentVersion}} ([430f388](https://github.com/jade-kim/gemini-feedic/commit/430f388cea9126bf126b4a2588f3fa474cfe7066))
+
+
+### ✨ 새로운 기능
+
+* update app icons and chrome extension icons ([d630b10](https://github.com/jade-kim/gemini-feedic/commit/d630b1095fa282e8b397659b14f097626cd6b2b6))
+
 ### [1.7.2](https://github.com/jade-kim/gemini-feedic/compare/v1.7.1...v1.7.2) (2025-09-19)
 
 
