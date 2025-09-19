@@ -3,6 +3,22 @@
 [Feedic](https://github.com/jade-kim/gemini-feedic)의 모든 주목할만한 변경 사항이 이 파일에 기록됩니다.
 
 이 프로젝트는 [Semantic Versioning](https://semver.org/)을 따르며 [Conventional Commits](https://conventionalcommits.org/)를 사용합니다.
+### [1.7.1](https://github.com/jade-kim/gemini-feedic/compare/v1.7.0...v1.7.1) (2025-09-19)
+
+
+### 📚 문서
+
+* update CLAUDE.md with latest PWA and version sync features ([52ac608](https://github.com/jade-kim/gemini-feedic/commit/52ac6087fb25867180ac606faa75fb830ea0b632))
+
+
+### 📦 기타
+
+* **release:** v{{currentVersion}} ([2dbb581](https://github.com/jade-kim/gemini-feedic/commit/2dbb581bcd953ba9eb6f5bd8279ebaac0452755f))
+
+
+### 🐞 버그 수정
+
+* resolve merge conflicts and sync versions ([72bcefa](https://github.com/jade-kim/gemini-feedic/commit/72bcefa2115092000ebb1af29ccac429b47f536e))
 
 ## [1.7.0](https://github.com/jade-kim/gemini-feedic/compare/v1.6.2...v1.7.0) (2025-09-19)
 
